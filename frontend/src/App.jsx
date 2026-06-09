@@ -1,7 +1,23 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Component } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
 import './index.css';
+
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 12, padding: 24 }}>
+        <div style={{ fontSize: 18, fontWeight: 600 }}>Something went wrong</div>
+        <div style={{ fontSize: 13, color: '#666', maxWidth: 400, textAlign: 'center' }}>{this.state.error.message}</div>
+        <button onClick={() => window.location.reload()} style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: '1px solid #ccc', cursor: 'pointer' }}>Reload</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 
 import LoginPage      from './pages/LoginPage';
 import AdminLayout    from './components/AdminLayout';
@@ -139,6 +155,7 @@ function EmployeeDashboard() {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
@@ -160,5 +177,6 @@ export default function App() {
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }

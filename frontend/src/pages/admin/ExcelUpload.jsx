@@ -11,6 +11,7 @@ export default function ExcelUpload() {
   const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState(null);
   const [clearing, setClearing] = useState('');
+  const [confirmClear, setConfirmClear] = useState(''); // 'inst' | 'all' | ''
 
   const handleFile = async (f) => {
     if (!f) return;
@@ -49,8 +50,8 @@ export default function ExcelUpload() {
   };
 
   const handleClearInstallations = async () => {
-    if (!window.confirm('Clear all installation data? Employee accounts will be kept.')) return;
     setClearing('inst');
+    setConfirmClear('');
     try {
       await api.post('/excel/clear-installations');
       toast('Installation data cleared', 'success');
@@ -61,8 +62,8 @@ export default function ExcelUpload() {
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm('This will delete ALL employees and installation data. Are you sure?')) return;
     setClearing('all');
+    setConfirmClear('');
     try {
       await api.post('/excel/clear-all');
       toast('All data cleared', 'success');
@@ -99,19 +100,43 @@ export default function ExcelUpload() {
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: confirmClear ? 0 : 24, flexWrap: 'wrap' }}>
         <button className="btn btn-secondary" onClick={handleDownloadTemplate}>
           <i className="ti ti-download" /> Download Template
         </button>
-        <button className="btn" onClick={handleClearInstallations} disabled={clearing === 'inst'}
+        <button className="btn" onClick={() => setConfirmClear(confirmClear === 'inst' ? '' : 'inst')} disabled={!!clearing}
           style={{ background: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E' }}>
-          <i className="ti ti-trash" /> {clearing === 'inst' ? 'Clearing…' : 'Clear Installations'}
+          <i className="ti ti-trash" /> Clear Installations
         </button>
-        <button className="btn" onClick={handleClearAll} disabled={clearing === 'all'}
+        <button className="btn" onClick={() => setConfirmClear(confirmClear === 'all' ? '' : 'all')} disabled={!!clearing}
           style={{ background: '#FEE2E2', border: '1px solid #FECACA', color: '#DC2626' }}>
-          <i className="ti ti-trash-x" /> {clearing === 'all' ? 'Clearing…' : 'Clear All Data'}
+          <i className="ti ti-trash-x" /> Clear All Data
         </button>
       </div>
+
+      {/* Inline confirmation */}
+      {confirmClear && (
+        <div style={{
+          marginBottom: 24, padding: '14px 16px', borderRadius: 10,
+          background: confirmClear === 'all' ? '#FEE2E2' : '#FEF3C7',
+          border: `1px solid ${confirmClear === 'all' ? '#FECACA' : '#FCD34D'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: confirmClear === 'all' ? '#991B1B' : '#92400E' }}>
+            {confirmClear === 'all'
+              ? 'This will permanently delete ALL employees and installation data.'
+              : 'This will clear all installation data. Employee accounts will be kept.'}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setConfirmClear('')}>Cancel</button>
+            <button className="btn btn-sm" disabled={!!clearing}
+              onClick={confirmClear === 'all' ? handleClearAll : handleClearInstallations}
+              style={{ background: confirmClear === 'all' ? '#DC2626' : '#D97706', color: '#fff', border: 'none' }}>
+              {clearing ? 'Clearing…' : 'Yes, clear'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Upload zone */}
       <div className="card" style={{ marginBottom: 20 }}>

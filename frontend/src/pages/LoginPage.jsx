@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [empId, setEmpId] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [campaignName, setCampaignName] = useState('Tez-Tarakki Stars');
   const { login, token, role } = useAuth();
@@ -26,6 +27,12 @@ export default function LoginPage() {
       .catch(() => {});
   }, []);
 
+  const switchMode = (m) => {
+    setMode(m);
+    setPassword('');
+    setShowPwd(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -38,8 +45,13 @@ export default function LoginPage() {
       } else {
         const res = await api.post('/employee/login', { employee_id: empId, password });
         login(res.data.token, res.data.user, 'employee');
-        toast('Welcome, ' + res.data.user.name, 'success');
-        navigate('/dashboard');
+        if (res.data.must_change_password) {
+          toast('Please set a new password to continue', 'info');
+          navigate('/change-password');
+        } else {
+          toast('Welcome, ' + res.data.user.name, 'success');
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       toast(err.response?.data?.error || 'Login failed', 'error');
@@ -63,7 +75,7 @@ export default function LoginPage() {
           <img
             src={JIO_LOGO}
             alt="Jio"
-            style={{ width: 80, height: 80, borderRadius: '50%', marginBottom: 14, boxShadow: '0 4px 24px rgba(0,0,0,0.3)', border: '3px solid rgba(255,255,255,0.15)' }}
+            style={{ width: 80, height: 80, borderRadius: '50%', marginBottom: 14, boxShadow: '0 4px 24px rgba(0,0,0,0.3)', border: '3px solid rgba(255,255,255,0.15)', objectFit: 'contain' }}
           />
           <div style={{ fontSize: 20, fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>
             {campaignName}
@@ -76,7 +88,7 @@ export default function LoginPage() {
         <div style={{ background: '#fff', borderRadius: 18, padding: 32, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
           <div style={{ display: 'flex', background: '#EAECF0', borderRadius: 10, padding: 4, marginBottom: 24 }}>
             {[{id:'employee',label:'Employee'},{id:'admin',label:'Admin'}].map(t => (
-              <button key={t.id} onClick={() => setMode(t.id)} style={{
+              <button key={t.id} onClick={() => switchMode(t.id)} style={{
                 flex: 1, padding: '8px 0', borderRadius: 7, border: 'none',
                 fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
                 background: mode === t.id ? '#fff' : 'transparent',
@@ -94,19 +106,29 @@ export default function LoginPage() {
               <div className="form-row">
                 <label>Employee ID</label>
                 <input className="input" type="text" placeholder="e.g. JIO-01000"
-                  value={empId} onChange={e => setEmpId(e.target.value)} required autoFocus />
+                  value={empId} onChange={e => setEmpId(e.target.value)} required autoFocus autoComplete="username" />
               </div>
             ) : (
               <div className="form-row">
                 <label>Username</label>
                 <input className="input" type="text" placeholder="admin1"
-                  value={username} onChange={e => setUsername(e.target.value)} required autoFocus />
+                  value={username} onChange={e => setUsername(e.target.value)} required autoFocus autoComplete="username" />
               </div>
             )}
             <div className="form-row">
               <label>Password</label>
-              <input className="input" type="password" placeholder="Enter password"
-                value={password} onChange={e => setPassword(e.target.value)} required />
+              <div style={{ position: 'relative' }}>
+                <input className="input" type={showPwd ? 'text' : 'password'} placeholder="Enter password"
+                  style={{ paddingRight: 44 }}
+                  value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
+                <button type="button" onClick={() => setShowPwd(s => !s)} style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', fontSize: 17, lineHeight: 1, padding: 2,
+                }}>
+                  <i className={`ti ${showPwd ? 'ti-eye-off' : 'ti-eye'}`} />
+                </button>
+              </div>
             </div>
             <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ marginTop: 8 }}>
               {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : null}

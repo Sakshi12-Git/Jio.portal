@@ -42,7 +42,8 @@ export default function AdminLayout() {
               style={{
                 width: 38, height: 38, borderRadius: '50%',
                 background: '#fff', padding: 2,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                flexShrink: 0, objectFit: 'contain',
               }}
             />
             <div>
@@ -126,7 +127,7 @@ export default function AdminLayout() {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={JIO_LOGO} alt="Jio" style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', padding: 1 }} />
+            <img src={JIO_LOGO} alt="Jio" style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', padding: 1, flexShrink: 0, objectFit: 'contain' }} />
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Admin Panel</span>
           </div>
 

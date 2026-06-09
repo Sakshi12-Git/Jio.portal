@@ -199,6 +199,13 @@ tbody tr:hover td { background: var(--border-light); }
 
 @media (max-width: 640px) {
   .form-grid { grid-template-columns: 1fr; }
+  .toast-container {
+    top: auto;
+    bottom: 16px;
+    left: 12px;
+    right: 12px;
+  }
+  .toast { min-width: unset; width: 100%; }
 }
 
 /* Pagination */

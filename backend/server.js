@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/admin', adminRoutes);
@@ -29,7 +29,6 @@ if (existsSync(frontendDist)) {
 
 initDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`\n🚀 Jio Portal API running at http://localhost:${PORT}`);
-    console.log(`📦 Admin accounts: admin1/Admin@123 | admin2/Admin@456 | admin3/Admin@789\n`);
+    console.log(`\n🚀 Jio Portal API running at http://localhost:${PORT}\n`);
   });
 }).catch(err => { console.error('Failed to init DB:', err); process.exit(1); });

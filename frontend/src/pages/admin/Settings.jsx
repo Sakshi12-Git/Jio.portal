@@ -48,7 +48,7 @@ export default function Settings() {
     }
     setPwdLoading(true);
     try {
-      await api.post('/excel/admin-change-password', {
+      await api.post('/admin/change-password', {
         current_password: pwdForm.current_password,
         new_password: pwdForm.new_password
       });
@@ -63,7 +63,7 @@ export default function Settings() {
     e.preventDefault();
     setResetLoading(true);
     try {
-      await api.post('/excel/admin-reset-password', {
+      await api.post('/admin/reset-employee-password', {
         employee_id: resetEmpId,
         new_password: resetPwd
       });

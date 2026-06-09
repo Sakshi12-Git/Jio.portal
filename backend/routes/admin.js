@@ -344,6 +344,47 @@ router.get('/rankings', adminAuth, (req, res) => {
   res.json({ rankings, scope, week: w, month: m, year: y });
 });
 
+// POST /api/admin/change-password
+router.post('/change-password', adminAuth, (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password)
+    return res.status(400).json({ error: 'current_password and new_password required' });
+  if (new_password.length < 8)
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  const db = getDB();
+  const result = db.exec("SELECT password_hash FROM admins WHERE id=?", [req.admin.id]);
+  if (!result.length || !result[0].values.length)
+    return res.status(404).json({ error: 'Admin not found' });
+
+  if (!bcrypt.compareSync(current_password, result[0].values[0][0]))
+    return res.status(401).json({ error: 'Current password is incorrect' });
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.run("UPDATE admins SET password_hash=? WHERE id=?", [hash, req.admin.id]);
+  saveDB();
+  res.json({ message: 'Password changed successfully' });
+});
+
+// POST /api/admin/reset-employee-password
+router.post('/reset-employee-password', adminAuth, (req, res) => {
+  const { employee_id, new_password } = req.body;
+  if (!employee_id || !new_password)
+    return res.status(400).json({ error: 'employee_id and new_password required' });
+  if (new_password.length < 6)
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+  const db = getDB();
+  const exists = db.exec("SELECT id FROM employees WHERE employee_id=? AND active=1", [employee_id]);
+  if (!exists.length || !exists[0].values.length)
+    return res.status(404).json({ error: 'Employee not found' });
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.run("UPDATE employees SET password_hash=?, must_change_password=1 WHERE employee_id=?", [hash, employee_id]);
+  saveDB();
+  res.json({ message: `Password reset for ${employee_id}` });
+});
+
 // POST /api/admin/bulk-points
 router.post('/bulk-points', adminAuth, (req, res) => {
   const { updates } = req.body;
