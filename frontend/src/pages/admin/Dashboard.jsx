@@ -3,19 +3,16 @@ import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import { useAuth } from '../../hooks/useAuth';
 
-function StatCard({ icon, label, value, color, sub }) {
+function KpiCard({ icon, label, value, color, sub }) {
   return (
-    <div className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-        background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center'
-      }}>
+    <div className="kpi-card">
+      <div className="kpi-icon" style={{ background: color + '18' }}>
         <i className={`ti ${icon}`} style={{ fontSize: 22, color }} />
       </div>
-      <div>
-        <div style={{ fontSize: 26, fontWeight: 700 }}>{value}</div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 1 }}>{label}</div>
-        {sub && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="kpi-value">{value}</div>
+        <div className="kpi-label">{label}</div>
+        {sub && <div className="kpi-sub">{sub}</div>}
       </div>
     </div>
   );
@@ -74,153 +71,184 @@ export default function AdminDashboard() {
 
   const HOW_TO_USE = [
     {
-      step: '1',
-      icon: 'ti-file-spreadsheet',
-      color: '#0099C2',
+      step: '1', icon: 'ti-file-spreadsheet', color: 'var(--jio-blue)',
       title: 'Upload Employee Data',
       desc: 'Go to Excel Upload → Download the template → Fill Employee IDs, Names, Category (CSL/XDSS/JDSS), Region, State, and Mobile number → Upload.'
     },
     {
-      step: '2',
-      icon: 'ti-lock',
-      color: '#7C3AED',
+      step: '2', icon: 'ti-lock', color: '#7C3AED',
       title: 'Share Login Credentials',
       desc: 'Passwords are auto-generated as EP@ + last 5 digits of mobile number. Share Employee ID and password with each employee.'
     },
     {
-      step: '3',
-      icon: 'ti-home-check',
-      color: '#059669',
+      step: '3', icon: 'ti-home-check', color: 'var(--success)',
       title: 'Upload Daily Installations',
       desc: 'Every day, download the template → fill Employee ID, installations count, and today\'s date (DD-MM-YYYY) → Upload. Daily counts add up automatically.'
     },
     {
-      step: '4',
-      icon: 'ti-trophy',
-      color: '#D97706',
+      step: '4', icon: 'ti-trophy', color: 'var(--warning)',
       title: 'Track Rankings',
       desc: 'Go to Rankings to view National, Regional, and State leaderboards. Filter by category (CSL / XDSS+JDSS) and switch between weekly and monthly view.'
     },
     {
-      step: '5',
-      icon: 'ti-settings',
-      color: '#DC2626',
+      step: '5', icon: 'ti-settings', color: 'var(--danger)',
       title: 'Manage Settings',
       desc: 'Update campaign name, tagline, and admin passwords from Settings. Reset any employee password from the Employees page.'
     },
   ];
 
+  const instBreakdown = [
+    { label: 'CSL',  value: instStats?.csl,  color: 'var(--jio-blue)', bg: 'var(--jio-blue-light)' },
+    { label: 'XDSS', value: instStats?.xdss, color: 'var(--warning)',  bg: '#FFFBEB' },
+    { label: 'JDSS', value: instStats?.jdss, color: 'var(--success)',  bg: '#F0FDF4' },
+  ];
+
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>
-          Welcome back, {user?.name} 👋
+      {/* Page header */}
+      <div className="page-header">
+        <h1 style={{ fontSize: 26 }}>
+          Welcome back, {user?.name}
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>
-          {settings.campaign_name} · {weekLabel} · {monthLabel}
+        <p style={{ fontSize: 14, marginTop: 4 }}>
+          {settings.campaign_name} &nbsp;·&nbsp; {weekLabel} &nbsp;·&nbsp; {monthLabel}
         </p>
       </div>
 
-      {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
-        <StatCard icon="ti-users" label="Total Employees" value={stats?.total?.toLocaleString() || 0} color="var(--jio-blue)" />
-        <StatCard icon="ti-id" label="CSL Employees" value={stats?.csl?.toLocaleString() || 0} color="var(--jio-teal)" />
-        <StatCard icon="ti-network" label="XDSS Employees" value={stats?.xdss?.toLocaleString() || 0} color="var(--warning)" />
-        <StatCard icon="ti-device-mobile" label="JDSS Employees" value={stats?.jdss?.toLocaleString() || 0} color="var(--success)" />
-        <StatCard
-          icon="ti-shield"
-          label="Active Admin Sessions"
-          value={`${stats?.adminsActive || 0} / ${stats?.maxAdmins || 3}`}
-          color="var(--danger)"
-          sub="Max 3 simultaneous sessions"
-        />
+      {/* KPI Cards */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+        gap: 16,
+        marginBottom: 28,
+      }}>
+        <KpiCard icon="ti-users"         label="Total Employees"        value={stats?.total?.toLocaleString() || '0'}           color="var(--jio-blue)" />
+        <KpiCard icon="ti-id"            label="CSL Employees"          value={stats?.csl?.toLocaleString() || '0'}             color="var(--jio-teal)" />
+        <KpiCard icon="ti-network"       label="XDSS Employees"         value={stats?.xdss?.toLocaleString() || '0'}            color="var(--warning)" />
+        <KpiCard icon="ti-device-mobile" label="JDSS Employees"         value={stats?.jdss?.toLocaleString() || '0'}            color="var(--success)" />
+        <KpiCard icon="ti-shield"        label="Active Admin Sessions"   value={`${stats?.adminsActive || 0} / ${stats?.maxAdmins || 3}`} color="var(--danger)" sub="Max 3 simultaneous" />
       </div>
 
-      {/* Installations this week + Campaign settings */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+      {/* Installations + Campaign side-by-side */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }} className="dash-grid">
 
         {/* Installations this week */}
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 600 }}>Installations This Week</h2>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{weekLabel} · {monthLabel}</p>
+              <h3 style={{ fontSize: 16 }}>Installations This Week</h3>
+              <p style={{ fontSize: 12, marginTop: 2 }}>{weekLabel} · {monthLabel}</p>
             </div>
             <span className="badge badge-blue">{weekLabel}</span>
           </div>
 
+          {/* Big number */}
           <div style={{
-            background: 'linear-gradient(135deg, #002070, #003fa8)',
-            borderRadius: 12, padding: '20px', color: '#fff', marginBottom: 16, textAlign: 'center'
+            background: 'linear-gradient(135deg, var(--jio-blue-dark), var(--jio-blue))',
+            borderRadius: 12,
+            padding: '24px 20px',
+            color: '#fff',
+            textAlign: 'center',
+            marginBottom: 16,
+            boxShadow: '0 4px 16px rgba(15,60,201,0.25)',
+            position: 'relative',
+            overflow: 'hidden',
           }}>
-            <div style={{ fontSize: 11, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+            <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
               Total Installations
             </div>
-            <div style={{ fontSize: 42, fontWeight: 700 }}>
+            <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-1px' }}>
               {instStats?.total?.toLocaleString() || '0'}
             </div>
-            <div style={{ fontSize: 12, opacity: 0.55, marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
               across {instStats?.activeEmployees || '0'} active employees
             </div>
           </div>
 
+          {/* Breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            {[
-              { label: 'CSL', value: instStats?.csl, color: 'var(--jio-teal)', bg: '#EEF2FF' },
-              { label: 'XDSS', value: instStats?.xdss, color: 'var(--warning)', bg: '#FFFBEB' },
-              { label: 'JDSS', value: instStats?.jdss, color: 'var(--success)', bg: '#F0FDF4' },
-            ].map(c => (
-              <div key={c.label} style={{ background: c.bg, borderRadius: 10, padding: '12px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: c.color }}>
+            {instBreakdown.map(c => (
+              <div key={c.label} style={{
+                background: c.bg,
+                borderRadius: 10,
+                padding: '14px 8px',
+                textAlign: 'center',
+                border: '1px solid var(--border)',
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>
                   {c.value?.toLocaleString() || '0'}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{c.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, fontWeight: 500 }}>{c.label}</div>
               </div>
             ))}
           </div>
 
           {instStats?.topPerformer && (
             <div style={{
-              marginTop: 14, padding: '12px 14px',
-              background: 'var(--gold-bg)', border: '1px solid var(--gold-border)',
-              borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10
+              marginTop: 14,
+              padding: '12px 14px',
+              background: 'var(--gold-bg)',
+              border: '1px solid var(--gold-border)',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
             }}>
               <span style={{ fontSize: 22 }}>🥇</span>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{instStats.topPerformer.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
                   {instStats.topPerformer.category} · Top performer this week
                 </div>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--jio-blue)' }}>
-                {instStats.topPerformer.points} <span style={{ fontSize: 11, fontWeight: 400 }}>installs</span>
+              <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--jio-blue)', flexShrink: 0 }}>
+                {instStats.topPerformer.points}
+                <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 3 }}>installs</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Campaign settings */}
+        {/* Campaign settings + Quick links */}
         <div className="card">
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 18 }}>Campaign Settings</h2>
+          <h3 style={{ fontSize: 16, marginBottom: 18 }}>Campaign Settings</h3>
+
           <div style={{ marginBottom: 14 }}>
             <label>Campaign Name</label>
-            <div style={{ padding: '10px 14px', background: 'var(--border-light)', borderRadius: 8, fontSize: 14, fontWeight: 500 }}>
+            <div style={{
+              padding: '10px 14px',
+              background: 'var(--border-light)',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 500,
+              color: 'var(--text-primary)',
+            }}>
               {settings.campaign_name}
             </div>
           </div>
           <div style={{ marginBottom: 20 }}>
             <label>Tagline</label>
-            <div style={{ padding: '10px 14px', background: 'var(--border-light)', borderRadius: 8, fontSize: 14, fontWeight: 500 }}>
+            <div style={{
+              padding: '10px 14px',
+              background: 'var(--border-light)',
+              borderRadius: 8,
+              fontSize: 14,
+              fontStyle: 'italic',
+              color: 'var(--text-secondary)',
+            }}>
               {settings.tagline}
             </div>
           </div>
+
           <Link to="/admin/settings" className="btn btn-secondary btn-sm">
             <i className="ti ti-edit" /> Edit Campaign Settings
           </Link>
 
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Quick Links</h3>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>
+              Quick Links
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Link to="/admin/employees" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
                 <i className="ti ti-user-plus" /> Add / Manage Employees
@@ -238,36 +266,51 @@ export default function AdminDashboard() {
 
       {/* How to Use */}
       <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ti ti-help" style={{ fontSize: 20, color: 'var(--jio-blue)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: 'var(--jio-blue-light)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <i className="ti ti-help" style={{ fontSize: 22, color: 'var(--jio-blue)' }} />
           </div>
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 600 }}>How to Use This Portal</h2>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>Step-by-step guide for admins</p>
+            <h3 style={{ fontSize: 16 }}>How to Use This Portal</h3>
+            <p style={{ fontSize: 12, marginTop: 2 }}>Step-by-step guide for admins</p>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-          {HOW_TO_USE.map((item) => (
+          {HOW_TO_USE.map(item => (
             <div key={item.step} style={{
-              padding: '16px', borderRadius: 12, border: '1px solid var(--border)',
-              background: 'var(--bg)', display: 'flex', gap: 12, alignItems: 'flex-start'
+              padding: '16px',
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+              background: 'var(--bg)',
+              display: 'flex',
+              gap: 12,
+              alignItems: 'flex-start',
+              transition: 'border-color 0.15s',
             }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: item.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                background: item.color + '18',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <i className={`ti ${item.icon}`} style={{ fontSize: 20, color: item.color }} />
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: item.color, borderRadius: 20, padding: '1px 7px' }}>
+                <div style={{ marginBottom: 5 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: '#fff',
+                    background: item.color,
+                    borderRadius: 20, padding: '1px 8px',
+                  }}>
                     STEP {item.step}
                   </span>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{item.title}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.desc}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{item.desc}</div>
               </div>
             </div>
           ))}
@@ -276,7 +319,7 @@ export default function AdminDashboard() {
 
       <style>{`
         @media (max-width: 900px) {
-          div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+          .dash-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

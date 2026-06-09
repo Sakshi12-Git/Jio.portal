@@ -4,11 +4,27 @@ import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 import JIO_LOGO from '../../utils/jioLogo';
 
+function SectionCard({ icon, title, subtitle, children }) {
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+        <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--jio-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 19, color: 'var(--jio-blue)' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{title}</div>
+          {subtitle && <p style={{ fontSize: 12, marginTop: 2 }}>{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function Settings() {
   const toast = useToast();
   const { user } = useAuth();
 
-  // Campaign settings
   const [form, setForm] = useState({ campaign_name: '', tagline: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -16,12 +32,10 @@ export default function Settings() {
   const [logoSaving, setLogoSaving] = useState(false);
   const logoInputRef = useRef(null);
 
-  // Admin password change
   const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [pwdLoading, setPwdLoading] = useState(false);
   const [showPwd, setShowPwd] = useState({ current: false, new: false, confirm: false });
 
-  // Employee password reset
   const [resetEmpId, setResetEmpId] = useState('');
   const [resetPwd, setResetPwd] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -124,142 +138,172 @@ export default function Settings() {
     } finally { setResetLoading(false); }
   };
 
-  if (loading) return <div className="page-loader"><div className="spinner" />Loading…</div>;
+  if (loading) return <div className="page-loader"><div className="spinner" /> Loading…</div>;
 
   const EyeBtn = ({ field }) => (
     <button type="button" onClick={() => setShowPwd(s => ({ ...s, [field]: !s[field] }))}
-      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16 }}>
+      style={{
+        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+        background: 'none', border: 'none', cursor: 'pointer',
+        color: 'var(--text-muted)', fontSize: 16, padding: 2,
+      }}>
       <i className={`ti ${showPwd[field] ? 'ti-eye-off' : 'ti-eye'}`} />
     </button>
   );
 
+  const PwdField = ({ label, field, key: k, placeholder }) => (
+    <div className="form-row">
+      <label>{label}</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          className="input"
+          type={showPwd[k] ? 'text' : 'password'}
+          placeholder={placeholder}
+          style={{ paddingRight: 44 }}
+          value={pwdForm[field]}
+          onChange={e => setPwdForm(f => ({ ...f, [field]: e.target.value }))}
+          required
+        />
+        <EyeBtn field={k} />
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{ maxWidth: 640 }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>Settings</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 }}>Campaign, security and account settings</p>
+    <div style={{ maxWidth: 660 }}>
+      <div className="page-header">
+        <h1 style={{ fontSize: 26 }}>Settings</h1>
+        <p>Campaign, security and account settings</p>
       </div>
 
       {/* Campaign settings */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>
-          <i className="ti ti-speakerphone" style={{ marginRight: 8, color: 'var(--jio-blue)' }} />
-          Campaign Settings
-        </h2>
+      <SectionCard icon="ti-speakerphone" title="Campaign Settings" subtitle="Shown on the login page and leaderboard">
         <form onSubmit={handleSaveCampaign}>
           <div className="form-row">
             <label>Campaign Name</label>
             <input className="input" value={form.campaign_name}
               onChange={e => setForm(f => ({ ...f, campaign_name: e.target.value }))}
               placeholder="e.g. Tez-Tarakki Stars" required />
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Shown on login page</p>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>Shown on login page</div>
           </div>
           <div className="form-row">
             <label>Tagline</label>
             <input className="input" value={form.tagline}
               onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
               placeholder="e.g. Outperform Your Yesterday" required />
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Shown in italic on leaderboard</p>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>Shown in italic on leaderboard</div>
           </div>
 
           {/* Live preview */}
           <div style={{ marginBottom: 20, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
-            <div style={{ background: 'var(--jio-blue)', padding: '10px 14px' }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>PREVIEW</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>{form.campaign_name || '…'}</div>
+            <div style={{ background: 'var(--jio-blue)', padding: '10px 16px' }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Preview</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{form.campaign_name || '…'}</div>
             </div>
-            <div style={{ background: 'var(--bg)', padding: '8px 14px', fontSize: 13, fontStyle: 'italic', color: 'var(--jio-blue)' }}>
+            <div style={{ background: 'var(--bg)', padding: '10px 16px', fontSize: 13, fontStyle: 'italic', color: 'var(--jio-blue)' }}>
               "{form.tagline || '…'}"
             </div>
           </div>
 
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Saving…' : <><i className="ti ti-device-floppy" /> Save Campaign Settings</>}
+            {saving
+              ? <><span className="spinner" style={{ width: 15, height: 15 }} /> Saving…</>
+              : <><i className="ti ti-device-floppy" /> Save Campaign Settings</>
+            }
           </button>
         </form>
-      </div>
+      </SectionCard>
 
-      {/* Logo settings */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
-          <i className="ti ti-photo" style={{ marginRight: 8, color: 'var(--jio-blue)' }} />
-          Portal Logo
-        </h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
-          <img
-            src={logoPreview || logoUrl || JIO_LOGO}
-            alt="Portal logo"
-            style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'contain', border: '2px solid var(--border)', background: '#f5f5f5', padding: 4 }}
-          />
+      {/* Logo */}
+      <SectionCard icon="ti-photo" title="Portal Logo" subtitle="Shown on the login page and sidebar">
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, marginBottom: 16 }}>
+          <div style={{
+            width: 76, height: 76, borderRadius: 14, flexShrink: 0,
+            border: '2px solid var(--border)', background: 'var(--border-light)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden', padding: 4,
+          }}>
+            <img
+              src={logoPreview || logoUrl || JIO_LOGO}
+              alt="Portal logo"
+              style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 10 }}
+            />
+          </div>
           <div>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
-              Shown on the login page and sidebar. Recommended: square image, min 80×80px.
+            <p style={{ fontSize: 13, marginBottom: 12 }}>
+              Recommended: square image, min 80×80px (PNG or SVG).
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => logoInputRef.current?.click()} style={{ fontSize: 13 }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => logoInputRef.current?.click()}>
                 <i className="ti ti-upload" /> {logoFile ? 'Change Image' : 'Upload Image'}
               </button>
               {(logoUrl || logoFile) && (
-                <button type="button" className="btn btn-secondary" onClick={handleRemoveLogo} disabled={logoSaving}
-                  style={{ fontSize: 13, color: '#DC2626', borderColor: '#FECACA' }}>
+                <button type="button" className="btn btn-sm" onClick={handleRemoveLogo} disabled={logoSaving}
+                  style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}>
                   <i className="ti ti-trash" /> Remove
                 </button>
               )}
             </div>
-            {logoFile && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>{logoFile.name} — click Save to apply</p>}
+            {logoFile && (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+                {logoFile.name} — click Save Logo to apply
+              </div>
+            )}
             <input ref={logoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoChange} />
           </div>
         </div>
         <button type="button" className="btn btn-primary" onClick={handleSaveLogo} disabled={logoSaving || !logoFile}>
-          {logoSaving ? 'Saving…' : <><i className="ti ti-device-floppy" /> Save Logo</>}
+          {logoSaving
+            ? <><span className="spinner" style={{ width: 15, height: 15 }} /> Saving…</>
+            : <><i className="ti ti-device-floppy" /> Save Logo</>
+          }
         </button>
-      </div>
+      </SectionCard>
 
-      {/* Admin change own password */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
-          <i className="ti ti-lock" style={{ marginRight: 8, color: 'var(--jio-blue)' }} />
-          Change Your Password
-        </h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
-          Logged in as <strong>{user?.username}</strong>
-        </p>
+      {/* Change admin password */}
+      <SectionCard icon="ti-lock" title="Change Your Password" subtitle={`Logged in as ${user?.username}`}>
         <form onSubmit={handleChangePassword}>
           {[
-            { label: 'Current Password', field: 'current_password', key: 'current' },
-            { label: 'New Password', field: 'new_password', key: 'new' },
-            { label: 'Confirm New Password', field: 'confirm_password', key: 'confirm' },
-          ].map(({ label, field, key }) => (
+            { label: 'Current Password',     field: 'current_password', k: 'current', placeholder: 'Enter current password' },
+            { label: 'New Password',          field: 'new_password',     k: 'new',     placeholder: 'Min 8 characters' },
+            { label: 'Confirm New Password',  field: 'confirm_password', k: 'confirm', placeholder: 'Re-enter new password' },
+          ].map(({ label, field, k, placeholder }) => (
             <div key={field} className="form-row">
               <label>{label}</label>
               <div style={{ position: 'relative' }}>
-                <input className="input" type={showPwd[key] ? 'text' : 'password'}
-                  style={{ paddingRight: 40 }}
+                <input
+                  className="input"
+                  type={showPwd[k] ? 'text' : 'password'}
+                  placeholder={placeholder}
+                  style={{ paddingRight: 44 }}
                   value={pwdForm[field]}
                   onChange={e => setPwdForm(f => ({ ...f, [field]: e.target.value }))}
-                  required />
-                <EyeBtn field={key} />
+                  required
+                />
+                <EyeBtn field={k} />
               </div>
             </div>
           ))}
-          <div style={{ background: 'var(--border-light)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+
+          <div style={{
+            background: 'var(--border-light)', borderRadius: 8,
+            padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)',
+          }}>
+            <i className="ti ti-info-circle" style={{ marginRight: 5, verticalAlign: -1 }} />
             Password must be at least 8 characters. No OTP or verification required.
           </div>
+
           <button type="submit" className="btn btn-primary" disabled={pwdLoading}>
-            {pwdLoading ? 'Changing…' : <><i className="ti ti-key" /> Change Password</>}
+            {pwdLoading
+              ? <><span className="spinner" style={{ width: 15, height: 15 }} /> Changing…</>
+              : <><i className="ti ti-key" /> Change Password</>
+            }
           </button>
         </form>
-      </div>
+      </SectionCard>
 
       {/* Reset employee password */}
-      <div className="card">
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
-          <i className="ti ti-user-cog" style={{ marginRight: 8, color: 'var(--jio-blue)' }} />
-          Reset Employee Password
-        </h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
-          Use this if an employee forgets their password. They'll be forced to change it on next login.
-        </p>
+      <SectionCard icon="ti-user-cog" title="Reset Employee Password" subtitle="Use if an employee forgets their password — they'll be forced to change it on next login">
         <form onSubmit={handleResetEmployeePwd}>
           <div className="form-grid">
             <div className="form-row">
@@ -274,10 +318,13 @@ export default function Settings() {
             </div>
           </div>
           <button type="submit" className="btn btn-secondary" disabled={resetLoading}>
-            {resetLoading ? 'Resetting…' : <><i className="ti ti-refresh" /> Reset Password</>}
+            {resetLoading
+              ? <><span className="spinner" style={{ width: 15, height: 15 }} /> Resetting…</>
+              : <><i className="ti ti-refresh" /> Reset Password</>
+            }
           </button>
         </form>
-      </div>
+      </SectionCard>
     </div>
   );
 }

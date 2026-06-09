@@ -11,16 +11,16 @@ const REGIONS = ['North', 'South', 'East', 'West'];
 const STATES = {
   North: ['Delhi', 'Haryana', 'Punjab', 'Kashmir', 'Rajasthan', 'Jammu', 'Uttar Pradesh (East)', 'Uttar Pradesh (West)', 'Himachal Pradesh', 'Uttarakhand'],
   South: ['Andhra Pradesh', 'Telangana', 'Kerala', 'Tamil Nadu', 'Karnataka'],
-  West: ['MP & CG', 'Mumbai', 'Mah & Goa', 'Gujarat'],
-  East: ['Assam', 'Kolkata', 'West Bengal', 'Jharkhand', 'Bihar', 'Orissa', 'North East'],
+  West:  ['MP & CG', 'Mumbai', 'Mah & Goa', 'Gujarat'],
+  East:  ['Assam', 'Kolkata', 'West Bengal', 'Jharkhand', 'Bihar', 'Orissa', 'North East'],
 };
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 const medals = ['🥇','🥈','🥉'];
-const rankColors = ['var(--gold-bg)','var(--silver-bg)','var(--bronze-bg)'];
-const rankBorders = ['var(--gold-border)','var(--silver-border)','var(--bronze-border)'];
+const rankColors  = ['var(--gold-bg)', 'var(--silver-bg)', 'var(--bronze-bg)'];
+const rankBorders = ['var(--gold-border)', 'var(--silver-border)', 'var(--bronze-border)'];
 
 function getCurrentWeekOfMonth() {
   const day = new Date().getDate();
@@ -46,19 +46,16 @@ export default function Rankings() {
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // View mode: week or month
   const [viewMode, setViewMode] = useState('week');
   const [selectedWeek, setSelectedWeek] = useState(getCurrentWeekOfMonth());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
-  // Month options — last 6 months
   const monthOptions = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     return { label: `${FULL_MONTHS[d.getMonth()]} ${d.getFullYear()}`, month: d.getMonth() + 1, year: d.getFullYear() };
   });
 
-  // Week options for selected month
   const currentWeekOfMonth = getCurrentWeekOfMonth();
   const weekOptions = [1, 2, 3, 4].map(w => ({
     value: w,
@@ -97,11 +94,9 @@ export default function Rankings() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>Rankings</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 }}>
-          View leaderboards across all scopes and categories
-        </p>
+      <div className="page-header">
+        <h1 style={{ fontSize: 26 }}>Rankings</h1>
+        <p>View leaderboards across all scopes and categories</p>
       </div>
 
       {/* Scope tabs */}
@@ -115,22 +110,23 @@ export default function Rankings() {
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ padding: '14px 16px', marginBottom: 20 }}>
+      <div className="card" style={{ padding: '16px', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
 
           {/* Week / Month toggle */}
           <div>
             <label>View</label>
-            <div style={{ display: 'flex', background: '#EAECF0', borderRadius: 8, padding: 3, width: 'fit-content' }}>
+            <div style={{ display: 'flex', background: 'var(--border-light)', borderRadius: 8, padding: 3, width: 'fit-content', gap: 2 }}>
               {['week', 'month'].map(m => (
                 <button key={m} onClick={() => setViewMode(m)} style={{
                   padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  fontSize: 13, fontWeight: 500,
+                  fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
                   background: viewMode === m ? '#fff' : 'transparent',
                   color: viewMode === m ? 'var(--jio-blue)' : 'var(--text-muted)',
                   boxShadow: viewMode === m ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s',
                 }}>
-                  {m === 'week' ? '📅 Weekly' : '🗓️ Monthly'}
+                  {m === 'week' ? 'Weekly' : 'Monthly'}
                 </button>
               ))}
             </div>
@@ -139,7 +135,7 @@ export default function Rankings() {
           {/* Month selector */}
           <div>
             <label>Month</label>
-            <select className="select" style={{ width: 160 }} value={`${selectedMonth}-${selectedYear}`}
+            <select className="select" style={{ width: 168 }} value={`${selectedMonth}-${selectedYear}`}
               onChange={e => {
                 const [m, y] = e.target.value.split('-');
                 setSelectedMonth(parseInt(m));
@@ -152,7 +148,7 @@ export default function Rankings() {
             </select>
           </div>
 
-          {/* Week selector (only in week mode) */}
+          {/* Week selector */}
           {viewMode === 'week' && (
             <div>
               <label>Week</label>
@@ -193,7 +189,7 @@ export default function Rankings() {
               </div>
               <div>
                 <label>State</label>
-                <select className="select" style={{ width: 160 }} value={state} onChange={e => setState(e.target.value)}>
+                <select className="select" style={{ width: 170 }} value={state} onChange={e => setState(e.target.value)}>
                   {(STATES[region] || []).map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
@@ -201,24 +197,28 @@ export default function Rankings() {
           )}
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-end' }}>
-            <span className="badge badge-blue">{currentPeriodLabel}</span>
+            <span className="badge badge-blue" style={{ height: 40, paddingInline: 14, fontSize: 13 }}>{currentPeriodLabel}</span>
           </div>
         </div>
       </div>
 
       {/* Leaderboard */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 600 }}>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>
               {SCOPES.find(s => s.id === scope)?.label} Rankings
               {scope === 'regional' && ` — ${region}`}
               {scope === 'state' && ` — ${state}`}
               {category && ` · ${category}`}
-            </h2>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              Top 10 performers · {currentPeriodLabel}
-            </p>
+            </div>
+            <p style={{ fontSize: 12, marginTop: 2 }}>Top performers · {currentPeriodLabel}</p>
           </div>
           <span className="badge badge-gray">{rankings.length} entries</span>
         </div>
@@ -226,34 +226,39 @@ export default function Rankings() {
         {loading ? (
           <div className="page-loader"><div className="spinner" /> Loading rankings…</div>
         ) : rankings.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>
-            <i className="ti ti-trophy-off" style={{ fontSize: 40, opacity: 0.3 }} />
-            <div style={{ marginTop: 12 }}>No data for {currentPeriodLabel}</div>
+          <div style={{ padding: 56, textAlign: 'center', color: 'var(--text-muted)' }}>
+            <i className="ti ti-trophy-off" style={{ fontSize: 44, opacity: 0.25 }} />
+            <div style={{ marginTop: 12, fontSize: 14 }}>No data for {currentPeriodLabel}</div>
           </div>
         ) : (
-          <div style={{ padding: 16 }}>
+          <div style={{ padding: '16px 16px 12px' }}>
             {rankings.map((emp, i) => (
               <div key={emp.employee_id} style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '12px 16px', borderRadius: 10, marginBottom: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                padding: '12px 16px',
+                borderRadius: 10,
+                marginBottom: 8,
                 background: i < 3 ? rankColors[i] : 'var(--border-light)',
                 border: `1px solid ${i < 3 ? rankBorders[i] : 'var(--border)'}`,
+                transition: 'box-shadow 0.15s',
               }}>
-                <div style={{ minWidth: 36, textAlign: 'center' }}>
+                <div style={{ minWidth: 36, textAlign: 'center', flexShrink: 0 }}>
                   {i < 3
                     ? <span style={{ fontSize: 22 }}>{medals[i]}</span>
-                    : <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-muted)' }}>#{emp.rank}</span>
+                    : <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-muted)' }}>#{emp.rank}</span>
                   }
                 </div>
                 <div style={{
                   width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
                   background: 'var(--jio-blue)', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 600
+                  fontSize: 13, fontWeight: 600,
                 }}>
                   {emp.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{emp.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
                     {emp.employee_id}{emp.region && ` · ${emp.region}`}{emp.state && ` · ${emp.state}`}
