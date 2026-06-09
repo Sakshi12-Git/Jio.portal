@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
 import './index.css';
+import JIO_LOGO from './utils/jioLogo';
 
 import LoginPage      from './pages/LoginPage';
 import AdminLayout    from './components/AdminLayout';
@@ -40,9 +41,7 @@ function EmployeeDashboard() {
         background: 'var(--jio-blue)', padding: '16px 20px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
-        <div style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>
-          Ji<span style={{ color: 'var(--jio-teal)' }}>o</span>
-        </div>
+        <img src={JIO_LOGO} alt="Jio" style={{ width: 40, height: 40, borderRadius: '50%' }} />
         <button onClick={() => { logout(); navigate('/'); }} style={{
           background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
           padding: '7px 16px', borderRadius: 8, fontSize: 13, cursor: 'pointer'
