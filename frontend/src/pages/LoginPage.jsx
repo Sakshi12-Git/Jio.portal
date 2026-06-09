@@ -21,9 +21,14 @@ export default function LoginPage() {
     if (token) navigate(role === 'admin' ? '/admin' : '/dashboard');
   }, [token]);
 
+  const [logoUrl, setLogoUrl] = useState('');
+
   useEffect(() => {
     api.get('/employee/settings')
-      .then(r => setCampaignName(r.data.campaign_name || 'Tez-Tarakki Stars'))
+      .then(r => {
+        setCampaignName(r.data.campaign_name || 'Tez-Tarakki Stars');
+        setLogoUrl(r.data.logo_url || '');
+      })
       .catch(() => {});
   }, []);
 
@@ -73,7 +78,7 @@ export default function LoginPage() {
       <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
         <div style={{ textAlign: 'center', marginBottom: 30 }}>
           <img
-            src={JIO_LOGO}
+            src={logoUrl || JIO_LOGO}
             alt="Jio"
             style={{ width: 80, height: 80, borderRadius: '50%', marginBottom: 14, boxShadow: '0 4px 24px rgba(0,0,0,0.3)', border: '3px solid rgba(255,255,255,0.15)', objectFit: 'contain' }}
           />

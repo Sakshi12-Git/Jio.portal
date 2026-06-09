@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../../utils/api';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
+import JIO_LOGO from '../../utils/jioLogo';
 
 export default function Settings() {
   const toast = useToast();
@@ -11,6 +12,9 @@ export default function Settings() {
   const [form, setForm] = useState({ campaign_name: '', tagline: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoSaving, setLogoSaving] = useState(false);
+  const logoInputRef = useRef(null);
 
   // Admin password change
   const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
@@ -25,14 +29,60 @@ export default function Settings() {
   useEffect(() => {
     api.get('/admin/settings').then(r => {
       setForm({ campaign_name: r.data.campaign_name || '', tagline: r.data.tagline || '' });
+      setLogoUrl(r.data.logo_url || '');
     }).finally(() => setLoading(false));
   }, []);
+
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const broadcastSettings = (patch) =>
+    window.dispatchEvent(new CustomEvent('portalSettingsUpdated', { detail: patch }));
+
+  const handleSaveLogo = async () => {
+    if (!logoFile) return;
+    setLogoSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append('logo', logoFile);
+      const res = await api.post('/admin/upload-logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setLogoUrl(res.data.logo_url);
+      setLogoFile(null);
+      setLogoPreview('');
+      broadcastSettings({ logo_url: res.data.logo_url });
+      toast('Logo saved!', 'success');
+    } catch { toast('Failed to save logo', 'error'); }
+    finally { setLogoSaving(false); }
+  };
+
+  const handleRemoveLogo = async () => {
+    setLogoSaving(true);
+    try {
+      await api.delete('/admin/upload-logo');
+      setLogoUrl('');
+      setLogoFile(null);
+      setLogoPreview('');
+      broadcastSettings({ logo_url: '' });
+      toast('Logo removed, using default', 'success');
+    } catch { toast('Failed to remove logo', 'error'); }
+    finally { setLogoSaving(false); }
+  };
 
   const handleSaveCampaign = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       await api.put('/admin/settings', form);
+      broadcastSettings({ campaign_name: form.campaign_name });
       toast('Campaign settings saved!', 'success');
     } catch { toast('Failed to save', 'error'); }
     finally { setSaving(false); }
@@ -127,6 +177,42 @@ export default function Settings() {
             {saving ? 'Saving…' : <><i className="ti ti-device-floppy" /> Save Campaign Settings</>}
           </button>
         </form>
+      </div>
+
+      {/* Logo settings */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+          <i className="ti ti-photo" style={{ marginRight: 8, color: 'var(--jio-blue)' }} />
+          Portal Logo
+        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
+          <img
+            src={logoPreview || logoUrl || JIO_LOGO}
+            alt="Portal logo"
+            style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'contain', border: '2px solid var(--border)', background: '#f5f5f5', padding: 4 }}
+          />
+          <div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
+              Shown on the login page and sidebar. Recommended: square image, min 80×80px.
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => logoInputRef.current?.click()} style={{ fontSize: 13 }}>
+                <i className="ti ti-upload" /> {logoFile ? 'Change Image' : 'Upload Image'}
+              </button>
+              {(logoUrl || logoFile) && (
+                <button type="button" className="btn btn-secondary" onClick={handleRemoveLogo} disabled={logoSaving}
+                  style={{ fontSize: 13, color: '#DC2626', borderColor: '#FECACA' }}>
+                  <i className="ti ti-trash" /> Remove
+                </button>
+              )}
+            </div>
+            {logoFile && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>{logoFile.name} — click Save to apply</p>}
+            <input ref={logoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoChange} />
+          </div>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={handleSaveLogo} disabled={logoSaving || !logoFile}>
+          {logoSaving ? 'Saving…' : <><i className="ti ti-device-floppy" /> Save Logo</>}
+        </button>
       </div>
 
       {/* Admin change own password */}

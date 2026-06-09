@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
@@ -17,6 +17,11 @@ export default function ChangePassword() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+
+  useEffect(() => {
+    api.get('/employee/settings').then(r => setLogoUrl(r.data.logo_url || '')).catch(() => {});
+  }, []);
 
   const passwordsMatch = newPwd && confirmPwd && newPwd === confirmPwd;
   const passwordsMismatch = newPwd && confirmPwd && newPwd !== confirmPwd;
@@ -56,7 +61,7 @@ export default function ChangePassword() {
         }}>
           <i className="ti ti-arrow-left" />
         </button>
-        <img src={JIO_LOGO} alt="Jio" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', padding: 2 }} />
+        <img src={logoUrl || JIO_LOGO} alt="Jio" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', padding: 2, flexShrink: 0, objectFit: 'contain' }} />
         <div>
           <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Account</div>
           <div style={{ color: '#fff', fontSize: 17, fontWeight: 700 }}>Change Password</div>

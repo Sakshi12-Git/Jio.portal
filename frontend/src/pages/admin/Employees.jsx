@@ -103,9 +103,12 @@ export default function Employees() {
     try {
       await api.post('/admin/employees', form);
       toast('Employee added successfully', 'success');
+      const addedId = form.employee_id.trim();
       setShowAdd(false);
       setForm(emptyForm);
-      fetchEmployees(search, page, filterCat);
+      setPage(1);
+      setSearch(addedId);
+      fetchEmployees(addedId, 1, filterCat);
     } catch (e) {
       toast(e.response?.data?.error || 'Failed to add', 'error');
     } finally {
