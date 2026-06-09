@@ -105,35 +105,15 @@ export default function Points() {
         </div>
       </div>
 
-      {/* Excel template guide */}
+      {/* Tip */}
       <div className="card" style={{ marginTop: 20, background: 'var(--jio-teal-light)', border: '1px solid #b3e9f7' }}>
-        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: 'var(--jio-blue)' }}>
-          <i className="ti ti-table" style={{ marginRight: 6 }} />
-          Excel Template Format
+        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: 'var(--jio-blue)' }}>
+          <i className="ti ti-bulb" style={{ marginRight: 6 }} />
+          Tip: Use Excel Upload for bulk data
         </h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 10 }}>
-          Your Excel file on OneDrive should have these exact columns:
-        </p>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ fontSize: 13, minWidth: 500 }}>
-            <thead>
-              <tr>
-                {['employee_id','name','installations','date','week','month','year'].map(h => (
-                  <th key={h} style={{ padding: '8px 12px', background: 'rgba(0,32,112,0.08)', border: '1px solid #b3e9f7', textAlign: 'left' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {['JIO-01000','Arjun Sharma','45','03-06-2026','23','6','2026'].map((v, i) => (
-                  <td key={i} style={{ padding: '8px 12px', border: '1px solid #b3e9f7', background: '#fff' }}>{v}</td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10 }}>
-          Once Excel sync is connected, you won't need to paste data manually — it'll update automatically!
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          For large daily updates, use the <strong>Excel Upload</strong> page — upload a sheet with Employee ID, Installations, and Date columns and it will accumulate counts automatically.
+          Use this page only for quick one-off corrections.
         </p>
       </div>
 

@@ -116,26 +116,13 @@ router.post('/import', adminAuth, upload.single('file'), async (req, res) => {
       const empCheck = db.exec("SELECT id FROM employees WHERE employee_id=?", [inst.employee_id]);
       if (!empCheck.length || !empCheck[0].values.length) continue;
 
-      // Check if record exists for this employee+week+month+year
-      const existing = db.exec(
-        "SELECT points FROM points WHERE employee_id=? AND week=? AND month=? AND year=?",
-        [inst.employee_id, inst.week_of_month, inst.month, inst.year]
+      db.run(
+        `INSERT INTO points (employee_id, points, week, month, year) VALUES (?,?,?,?,?)
+         ON CONFLICT(employee_id, week, year) DO UPDATE SET
+           points = points + excluded.points,
+           updated_at = CURRENT_TIMESTAMP`,
+        [inst.employee_id, inst.installations, inst.week_of_month, inst.month, inst.year]
       );
-
-      if (existing.length && existing[0].values.length) {
-        // ADD to existing points (daily accumulation)
-        const currentPoints = existing[0].values[0][0];
-        db.run(
-          "UPDATE points SET points=?, updated_at=CURRENT_TIMESTAMP WHERE employee_id=? AND week=? AND month=? AND year=?",
-          [currentPoints + inst.installations, inst.employee_id, inst.week_of_month, inst.month, inst.year]
-        );
-      } else {
-        // Insert new record
-        db.run(
-          "INSERT INTO points (employee_id, points, week, month, year) VALUES (?,?,?,?,?)",
-          [inst.employee_id, inst.installations, inst.week_of_month, inst.month, inst.year]
-        );
-      }
       instUpdated++;
     }
 

@@ -42,6 +42,7 @@ export default function Leaderboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tagline, setTagline] = useState('Outperform Your Yesterday');
+  const [logoUrl, setLogoUrl] = useState('');
 
   const scopeLabel = scope === 'national' ? 'National' : scope === 'regional' ? 'Regional' : 'State';
   const scopeSub = scope === 'national' ? 'All India' : scope === 'regional' ? user?.region + ' Region' : user?.state;
@@ -66,7 +67,10 @@ export default function Leaderboard() {
   });
 
   useEffect(() => {
-    api.get('/employee/settings').then(r => setTagline(r.data.tagline || 'Outperform Your Yesterday')).catch(() => {});
+    api.get('/employee/settings').then(r => {
+      setTagline(r.data.tagline || 'Outperform Your Yesterday');
+      setLogoUrl(r.data.logo_url || '');
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -103,7 +107,7 @@ export default function Leaderboard() {
           }}>
             <i className="ti ti-arrow-left" />
           </button>
-          <img src={JIO_LOGO} alt="Jio" style={{ width: 34, height: 34, borderRadius: '50%', background: '#fff', padding: 2 }} />
+          <img src={logoUrl || JIO_LOGO} alt="Jio" style={{ width: 34, height: 34, borderRadius: '50%', background: '#fff', padding: 2, flexShrink: 0, objectFit: 'contain' }} />
           <div style={{ flex: 1 }}>
             <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{scopeSub}</div>
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginTop: 1 }}>{scopeLabel} Rankings</div>
@@ -244,12 +248,12 @@ export default function Leaderboard() {
                   <span style={{
                     fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 10,
                     background: isMe ? 'rgba(255,255,255,0.15)' : emp.category === 'CSL' ? '#EEF2FF' : '#e6f7fc',
-                    color: isMe ? '#fff' : emp.category === 'CSL' ? 'var(--jio-blue)' : '#0077A8'
+                    color: isMe ? '#fff' : emp.category === 'CSL' ? 'var(--jio-blue)' : 'var(--jio-teal)'
                   }}>
                     {emp.category}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, marginTop: 1, color: isMe ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)' }}>
+                <div style={{ fontSize: 11, marginTop: 1, color: isMe ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {subtitleText}
                 </div>
               </div>
@@ -275,7 +279,7 @@ export default function Leaderboard() {
             marginBottom: 14, paddingBottom: 12,
             borderBottom: '1px solid rgba(255,255,255,0.12)'
           }}>
-            <img src={JIO_LOGO} alt="Jio" style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', padding: 2 }} />
+            <img src={logoUrl || JIO_LOGO} alt="Jio" style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', padding: 2, flexShrink: 0, objectFit: 'contain' }} />
             <div>
               <div style={{ fontWeight: 600, fontSize: 14 }}>{user?.name}</div>
               <div style={{ fontSize: 11, opacity: 0.55 }}>

@@ -1,8 +1,21 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync, unlinkSync } from 'fs';
 import { getDB, saveDB } from '../db.js';
 import { adminAuth, JWT_SECRET } from '../middleware.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDir = path.join(__dirname, '../uploads');
+
+const logoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => cb(null, 'logo' + path.extname(file.originalname)),
+});
+const uploadLogo = multer({ storage: logoStorage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 const router = express.Router();
 const activeSessions = new Map();
@@ -75,6 +88,29 @@ router.put('/settings', adminAuth, (req, res) => {
     db.run("INSERT OR REPLACE INTO settings VALUES ('tagline', ?)", [tagline]);
   saveDB();
   res.json({ message: 'Settings updated' });
+});
+
+// POST /api/admin/upload-logo
+router.post('/upload-logo', adminAuth, uploadLogo.single('logo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const logoUrl = `/uploads/${req.file.filename}`;
+  const db = getDB();
+  db.run("INSERT OR REPLACE INTO settings VALUES ('logo_url', ?)", [logoUrl]);
+  saveDB();
+  res.json({ logo_url: logoUrl });
+});
+
+// DELETE /api/admin/upload-logo
+router.delete('/upload-logo', adminAuth, (req, res) => {
+  const db = getDB();
+  const result = db.exec("SELECT value FROM settings WHERE key='logo_url'");
+  if (result.length && result[0].values.length) {
+    const filePath = path.join(uploadsDir, path.basename(result[0].values[0][0]));
+    if (existsSync(filePath)) try { unlinkSync(filePath); } catch {}
+  }
+  db.run("DELETE FROM settings WHERE key='logo_url'");
+  saveDB();
+  res.json({ message: 'Logo removed' });
 });
 
 // GET /api/admin/stats
@@ -171,7 +207,7 @@ router.get('/employees', adminAuth, (req, res) => {
      WHERE ${where}
      ORDER BY points DESC
      LIMIT ? OFFSET ?`,
-    [...params, currentWeek, currentMonth, currentYear, parseInt(limit), offset]
+    [currentWeek, currentMonth, currentYear, ...params, parseInt(limit), offset]
   );
 
   const employees = dataResult.length ? dataResult[0].values.map(row => ({
@@ -342,6 +378,47 @@ router.get('/rankings', adminAuth, (req, res) => {
   })) : [];
 
   res.json({ rankings, scope, week: w, month: m, year: y });
+});
+
+// POST /api/admin/change-password
+router.post('/change-password', adminAuth, (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password)
+    return res.status(400).json({ error: 'current_password and new_password required' });
+  if (new_password.length < 8)
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  const db = getDB();
+  const result = db.exec("SELECT password_hash FROM admins WHERE id=?", [req.admin.id]);
+  if (!result.length || !result[0].values.length)
+    return res.status(404).json({ error: 'Admin not found' });
+
+  if (!bcrypt.compareSync(current_password, result[0].values[0][0]))
+    return res.status(401).json({ error: 'Current password is incorrect' });
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.run("UPDATE admins SET password_hash=? WHERE id=?", [hash, req.admin.id]);
+  saveDB();
+  res.json({ message: 'Password changed successfully' });
+});
+
+// POST /api/admin/reset-employee-password
+router.post('/reset-employee-password', adminAuth, (req, res) => {
+  const { employee_id, new_password } = req.body;
+  if (!employee_id || !new_password)
+    return res.status(400).json({ error: 'employee_id and new_password required' });
+  if (new_password.length < 6)
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+  const db = getDB();
+  const exists = db.exec("SELECT id FROM employees WHERE employee_id=? AND active=1", [employee_id]);
+  if (!exists.length || !exists[0].values.length)
+    return res.status(404).json({ error: 'Employee not found' });
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.run("UPDATE employees SET password_hash=?, must_change_password=1 WHERE employee_id=?", [hash, employee_id]);
+  saveDB();
+  res.json({ message: `Password reset for ${employee_id}` });
 });
 
 // POST /api/admin/bulk-points

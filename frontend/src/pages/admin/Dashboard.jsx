@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -214,22 +215,22 @@ export default function AdminDashboard() {
               {settings.tagline}
             </div>
           </div>
-          <a href="/admin/settings" className="btn btn-secondary btn-sm">
+          <Link to="/admin/settings" className="btn btn-secondary btn-sm">
             <i className="ti ti-edit" /> Edit Campaign Settings
-          </a>
+          </Link>
 
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Quick Links</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <a href="/admin/employees" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
+              <Link to="/admin/employees" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
                 <i className="ti ti-user-plus" /> Add / Manage Employees
-              </a>
-              <a href="/admin/excel" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
+              </Link>
+              <Link to="/admin/excel" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
                 <i className="ti ti-file-spreadsheet" /> Upload Excel Data
-              </a>
-              <a href="/admin/rankings" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
+              </Link>
+              <Link to="/admin/rankings" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
                 <i className="ti ti-trophy" /> View All Rankings
-              </a>
+              </Link>
             </div>
           </div>
         </div>

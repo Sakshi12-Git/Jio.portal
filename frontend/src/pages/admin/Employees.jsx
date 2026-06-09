@@ -13,6 +13,22 @@ const STATES = {
 
 const emptyForm = { employee_id: '', name: '', category: 'CSL', region: 'North', state: 'Delhi', password: '' };
 
+function PwdInput({ value, onChange, placeholder }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: 'relative' }}>
+      <input className="input" type={show ? 'text' : 'password'} placeholder={placeholder}
+        style={{ paddingRight: 40 }} value={value} onChange={onChange} />
+      <button type="button" onClick={() => setShow(s => !s)} style={{
+        position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, lineHeight: 1,
+      }}>
+        <i className={`ti ${show ? 'ti-eye-off' : 'ti-eye'}`} />
+      </button>
+    </div>
+  );
+}
+
 function Modal({ title, onClose, children, footer }) {
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -87,9 +103,12 @@ export default function Employees() {
     try {
       await api.post('/admin/employees', form);
       toast('Employee added successfully', 'success');
+      const addedId = form.employee_id.trim();
       setShowAdd(false);
       setForm(emptyForm);
-      fetchEmployees(search, page, filterCat);
+      setPage(1);
+      setSearch(addedId);
+      fetchEmployees(addedId, 1, filterCat);
     } catch (e) {
       toast(e.response?.data?.error || 'Failed to add', 'error');
     } finally {
@@ -316,8 +335,7 @@ export default function Employees() {
             </div>
             <div className="form-row">
               <label>Password</label>
-              <input className="input" type="password" placeholder="Set password"
-                value={form.password}
+              <PwdInput placeholder="Set password" value={form.password}
                 onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))} />
             </div>
           </div>
@@ -365,8 +383,7 @@ export default function Employees() {
             </div>
             <div className="form-row">
               <label>New Password (leave blank to keep)</label>
-              <input className="input" type="password" placeholder="Leave blank to keep current"
-                value={form.password}
+              <PwdInput placeholder="Leave blank to keep current" value={form.password}
                 onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))} />
             </div>
           </div>

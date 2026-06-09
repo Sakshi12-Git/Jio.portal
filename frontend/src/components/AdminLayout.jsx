@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
@@ -16,6 +16,24 @@ export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [campaignName, setCampaignName] = useState('Jio Portal');
+  const [logoUrl, setLogoUrl] = useState('');
+
+  useEffect(() => {
+    api.get('/employee/settings')
+      .then(r => {
+        setCampaignName(r.data.campaign_name || 'Jio Portal');
+        setLogoUrl(r.data.logo_url || '');
+      })
+      .catch(() => {});
+
+    const handler = (e) => {
+      if (e.detail.logo_url !== undefined) setLogoUrl(e.detail.logo_url);
+      if (e.detail.campaign_name !== undefined) setCampaignName(e.detail.campaign_name || 'Jio Portal');
+    };
+    window.addEventListener('portalSettingsUpdated', handler);
+    return () => window.removeEventListener('portalSettingsUpdated', handler);
+  }, []);
 
   const handleLogout = async () => {
     try { await api.post('/admin/logout'); } catch {}
@@ -33,34 +51,22 @@ export default function AdminLayout() {
         position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 200,
       }} className="admin-sidebar">
 
-        {/* Logo + user */}
+        {/* Logo */}
         <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img
-              src={JIO_LOGO}
+              src={logoUrl || JIO_LOGO}
               alt="Jio"
               style={{
                 width: 38, height: 38, borderRadius: '50%',
                 background: '#fff', padding: 2,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                flexShrink: 0, objectFit: 'contain',
               }}
             />
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px' }}>Jio Portal</div>
+              <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px' }}>{campaignName}</div>
               <div style={{ fontSize: 11, opacity: 0.45 }}>Performance Portal</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'var(--jio-teal)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0
-            }}>
-              {user?.name?.[0] || 'A'}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{user?.name || 'Admin'}</div>
-              <div style={{ fontSize: 11, opacity: 0.45 }}>Administrator</div>
             </div>
           </div>
         </div>
@@ -86,8 +92,21 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        {/* Logout */}
+        {/* User + Logout */}
         <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'var(--jio-teal)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0,
+            }}>
+              {user?.name?.[0] || 'A'}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Admin'}</div>
+              <div style={{ fontSize: 11, opacity: 0.45 }}>Administrator</div>
+            </div>
+          </div>
           <button onClick={handleLogout} style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px 12px', borderRadius: 8, width: '100%',
@@ -126,7 +145,7 @@ export default function AdminLayout() {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={JIO_LOGO} alt="Jio" style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', padding: 1 }} />
+            <img src={logoUrl || JIO_LOGO} alt="Jio" style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', padding: 1, flexShrink: 0, objectFit: 'contain' }} />
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Admin Panel</span>
           </div>
 
