@@ -20,22 +20,47 @@ function StatCard({ icon, label, value, color, sub }) {
   );
 }
 
+function getCurrentWeekOfMonth() {
+  const day = new Date().getDate();
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+}
+
+function getWeekDateRange(weekOfMonth, month, year) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const starts = [1, 8, 15, 22];
+  const ends = [7, 14, 21, daysInMonth];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${starts[weekOfMonth-1]}–${ends[weekOfMonth-1]} ${monthNames[month-1]}`;
+}
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [settings, setSettings] = useState({});
-  const [rankings, setRankings] = useState([]);
+  const [instStats, setInstStats] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const now = new Date();
+  const currentWeek = getCurrentWeekOfMonth();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const weekLabel = getWeekDateRange(currentWeek, currentMonth, currentYear);
+  const monthLabel = MONTH_NAMES[currentMonth - 1] + ' ' + currentYear;
 
   useEffect(() => {
     Promise.all([
       api.get('/admin/stats'),
       api.get('/admin/settings'),
-      api.get('/admin/rankings?scope=national&limit=5'),
-    ]).then(([s, set, r]) => {
+      api.get(`/admin/installation-stats?week=${currentWeek}&month=${currentMonth}&year=${currentYear}`).catch(() => ({ data: null })),
+    ]).then(([s, set, inst]) => {
       setStats(s.data);
       setSettings(set.data);
-      setRankings(r.data.rankings || []);
+      setInstStats(inst.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -46,9 +71,43 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const medals = ['🥇', '🥈', '🥉'];
-  const now = new Date();
-  const weekNum = getWeekNumber(now);
+  const HOW_TO_USE = [
+    {
+      step: '1',
+      icon: 'ti-file-spreadsheet',
+      color: '#0099C2',
+      title: 'Upload Employee Data',
+      desc: 'Go to Excel Upload → Download the template → Fill Employee IDs, Names, Category (CSL/XDSS/JDSS), Region, State, and Mobile number → Upload.'
+    },
+    {
+      step: '2',
+      icon: 'ti-lock',
+      color: '#7C3AED',
+      title: 'Share Login Credentials',
+      desc: 'Passwords are auto-generated as EP@ + last 5 digits of mobile number. Share Employee ID and password with each employee.'
+    },
+    {
+      step: '3',
+      icon: 'ti-home-check',
+      color: '#059669',
+      title: 'Upload Daily Installations',
+      desc: 'Every day, download the template → fill Employee ID, installations count, and today\'s date (DD-MM-YYYY) → Upload. Daily counts add up automatically.'
+    },
+    {
+      step: '4',
+      icon: 'ti-trophy',
+      color: '#D97706',
+      title: 'Track Rankings',
+      desc: 'Go to Rankings to view National, Regional, and State leaderboards. Filter by category (CSL / XDSS+JDSS) and switch between weekly and monthly view.'
+    },
+    {
+      step: '5',
+      icon: 'ti-settings',
+      color: '#DC2626',
+      title: 'Manage Settings',
+      desc: 'Update campaign name, tagline, and admin passwords from Settings. Reset any employee password from the Employees page.'
+    },
+  ];
 
   return (
     <div>
@@ -58,7 +117,7 @@ export default function AdminDashboard() {
           Welcome back, {user?.name} 👋
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>
-          {settings.campaign_name} · Week {weekNum}, {now.getFullYear()}
+          {settings.campaign_name} · {weekLabel} · {monthLabel}
         </p>
       </div>
 
@@ -77,43 +136,70 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Bottom grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        {/* Top rankings */}
+      {/* Installations this week + Campaign settings */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+
+        {/* Installations this week */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 600 }}>National Top 5</h2>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>This week · All categories</p>
+              <h2 style={{ fontSize: 16, fontWeight: 600 }}>Installations This Week</h2>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{weekLabel} · {monthLabel}</p>
             </div>
-            <span className="badge badge-blue">Week {weekNum}</span>
+            <span className="badge badge-blue">{weekLabel}</span>
           </div>
-          {rankings.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-              No ranking data yet
+
+          <div style={{
+            background: 'linear-gradient(135deg, #002070, #003fa8)',
+            borderRadius: 12, padding: '20px', color: '#fff', marginBottom: 16, textAlign: 'center'
+          }}>
+            <div style={{ fontSize: 11, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+              Total Installations
             </div>
-          ) : rankings.map((emp, i) => (
-            <div key={emp.employee_id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '10px 12px', borderRadius: 8,
-              background: i === 0 ? 'var(--gold-bg)' : i === 1 ? 'var(--silver-bg)' : i === 2 ? 'var(--bronze-bg)' : 'var(--border-light)',
-              marginBottom: 6
+            <div style={{ fontSize: 42, fontWeight: 700 }}>
+              {instStats?.total?.toLocaleString() || '0'}
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.55, marginTop: 4 }}>
+              across {instStats?.activeEmployees || '0'} active employees
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            {[
+              { label: 'CSL', value: instStats?.csl, color: 'var(--jio-teal)', bg: '#EEF2FF' },
+              { label: 'XDSS', value: instStats?.xdss, color: 'var(--warning)', bg: '#FFFBEB' },
+              { label: 'JDSS', value: instStats?.jdss, color: 'var(--success)', bg: '#F0FDF4' },
+            ].map(c => (
+              <div key={c.label} style={{ background: c.bg, borderRadius: 10, padding: '12px 8px', textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: c.color }}>
+                  {c.value?.toLocaleString() || '0'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{c.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {instStats?.topPerformer && (
+            <div style={{
+              marginTop: 14, padding: '12px 14px',
+              background: 'var(--gold-bg)', border: '1px solid var(--gold-border)',
+              borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10
             }}>
-              <span style={{ fontSize: 18, minWidth: 28, textAlign: 'center' }}>
-                {i < 3 ? medals[i] : <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)' }}>#{emp.rank}</span>}
-              </span>
+              <span style={{ fontSize: 22 }}>🥇</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>{emp.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{emp.employee_id} · {emp.category}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{instStats.topPerformer.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {instStats.topPerformer.category} · Top performer this week
+                </div>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--jio-blue)' }}>
-                {emp.points?.toLocaleString()} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>pts</span>
+              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--jio-blue)' }}>
+                {instStats.topPerformer.points} <span style={{ fontSize: 11, fontWeight: 400 }}>installs</span>
               </div>
             </div>
-          ))}
+          )}
         </div>
 
-        {/* Campaign settings overview */}
+        {/* Campaign settings */}
         <div className="card">
           <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 18 }}>Campaign Settings</h2>
           <div style={{ marginBottom: 14 }}>
@@ -138,8 +224,8 @@ export default function AdminDashboard() {
               <a href="/admin/employees" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
                 <i className="ti ti-user-plus" /> Add / Manage Employees
               </a>
-              <a href="/admin/points" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
-                <i className="ti ti-star" /> Update Points
+              <a href="/admin/excel" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
+                <i className="ti ti-file-spreadsheet" /> Upload Excel Data
               </a>
               <a href="/admin/rankings" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
                 <i className="ti ti-trophy" /> View All Rankings
@@ -149,20 +235,49 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* How to Use */}
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="ti ti-help" style={{ fontSize: 20, color: 'var(--jio-blue)' }} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 600 }}>How to Use This Portal</h2>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>Step-by-step guide for admins</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+          {HOW_TO_USE.map((item) => (
+            <div key={item.step} style={{
+              padding: '16px', borderRadius: 12, border: '1px solid var(--border)',
+              background: 'var(--bg)', display: 'flex', gap: 12, alignItems: 'flex-start'
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                background: item.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <i className={`ti ${item.icon}`} style={{ fontSize: 20, color: item.color }} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: item.color, borderRadius: 20, padding: '1px 7px' }}>
+                    STEP {item.step}
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{item.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <style>{`
         @media (max-width: 900px) {
-          div[style*="grid-template-columns: 1fr 1fr"] {
-            grid-template-columns: 1fr !important;
-          }
+          div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
   );
-}
-
-function getWeekNumber(d) {
-  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }

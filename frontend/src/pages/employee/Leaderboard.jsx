@@ -11,14 +11,23 @@ const RANK_STYLE = [
   { bg: '#FDF5F2', border: '#DDB8A8' },
 ];
 
-function getWeekNumber(d) {
-  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function getCurrentWeekOfMonth() {
+  const day = new Date().getDate();
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
 }
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function getWeekDateRange(weekOfMonth, month, year) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const starts = [1, 8, 15, 22];
+  const ends = [7, 14, 21, daysInMonth];
+  return `${starts[weekOfMonth-1]}–${ends[weekOfMonth-1]} ${MONTH_SHORT[month-1]}`;
+}
 
 export default function Leaderboard() {
   const { scope } = useParams();
@@ -27,7 +36,7 @@ export default function Leaderboard() {
 
   const now = new Date();
   const [viewMode, setViewMode] = useState('week');
-  const [selectedWeek, setSelectedWeek] = useState(getWeekNumber(now));
+  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeekOfMonth());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [data, setData] = useState(null);
@@ -37,37 +46,49 @@ export default function Leaderboard() {
   const scopeLabel = scope === 'national' ? 'National' : scope === 'regional' ? 'Regional' : 'State';
   const scopeSub = scope === 'national' ? 'All India' : scope === 'regional' ? user?.region + ' Region' : user?.state;
 
+  const monthOptions = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return { label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`, month: d.getMonth() + 1, year: d.getFullYear() };
+  });
+
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const currentWeekOfMonth = getCurrentWeekOfMonth();
+
+  const weekOptions = [1, 2, 3, 4].map(w => ({
+    value: w,
+    label: getWeekDateRange(w, selectedMonth, selectedYear),
+  })).filter(w => {
+    if (selectedYear < currentYear) return true;
+    if (selectedYear === currentYear && selectedMonth < currentMonth) return true;
+    if (selectedYear === currentYear && selectedMonth === currentMonth) return w.value <= currentWeekOfMonth;
+    return false;
+  });
+
   useEffect(() => {
     api.get('/employee/settings').then(r => setTagline(r.data.tagline || 'Outperform Your Yesterday')).catch(() => {});
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    const params = viewMode === 'week'
-      ? { week: selectedWeek, year: selectedYear }
-      : { month: selectedMonth, year: selectedYear };
+    const params = {
+      mode: viewMode,
+      month: selectedMonth,
+      year: selectedYear,
+      ...(viewMode === 'week' ? { week: selectedWeek } : {})
+    };
     api.get('/employee/rankings/' + scope, { params })
       .then(r => setData(r.data))
       .catch(() => navigate('/dashboard'))
       .finally(() => setLoading(false));
   }, [scope, viewMode, selectedWeek, selectedMonth, selectedYear]);
 
-  const weekOptions = Array.from({ length: 8 }, (_, i) => {
-    const w = getWeekNumber(now) - i;
-    return { label: `Week ${w > 0 ? w : w + 52}`, value: w > 0 ? w : w + 52 };
-  });
-
-  const monthOptions = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    return { label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, month: d.getMonth() + 1, year: d.getFullYear() };
-  });
-
   const rankings = data?.rankings || [];
   const my = data?.myRank || {};
 
   const currentPeriodLabel = viewMode === 'week'
-    ? `Week ${selectedWeek}, ${selectedYear}`
-    : `${MONTHS[selectedMonth - 1]} ${selectedYear}`;
+    ? getWeekDateRange(selectedWeek, selectedMonth, selectedYear)
+    : `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 32 }}>
@@ -89,16 +110,10 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Tagline */}
-        <div style={{
-          padding: '10px 18px 0', fontStyle: 'italic', fontWeight: 500,
-          fontSize: 14, color: 'rgba(255,255,255,0.7)',
-          transform: 'rotate(-1deg)', transformOrigin: 'left center',
-        }}>
+        <div style={{ padding: '10px 18px 0', fontStyle: 'italic', fontWeight: 500, fontSize: 14, color: 'rgba(255,255,255,0.7)', transform: 'rotate(-1deg)', transformOrigin: 'left center' }}>
           "{tagline}"
         </div>
 
-        {/* Date filter tabs */}
         <div style={{ padding: '14px 18px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3, width: 'fit-content' }}>
             {['week', 'month'].map(m => (
@@ -113,20 +128,9 @@ export default function Leaderboard() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {viewMode === 'week'
-              ? weekOptions.map(w => (
-                <button key={w.value} onClick={() => setSelectedWeek(w.value)} style={{
-                  padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 500, transition: 'all 0.15s',
-                  background: selectedWeek === w.value ? '#fff' : 'rgba(255,255,255,0.12)',
-                  color: selectedWeek === w.value ? 'var(--jio-blue)' : 'rgba(255,255,255,0.8)',
-                  boxShadow: selectedWeek === w.value ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-                }}>
-                  {w.label}
-                </button>
-              ))
-              : monthOptions.map(m => (
+          {viewMode === 'month' && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {monthOptions.map(m => (
                 <button key={`${m.month}-${m.year}`}
                   onClick={() => { setSelectedMonth(m.month); setSelectedYear(m.year); }}
                   style={{
@@ -138,13 +142,46 @@ export default function Leaderboard() {
                   }}>
                   {m.label}
                 </button>
-              ))
-            }
-          </div>
+              ))}
+            </div>
+          )}
+
+          {viewMode === 'week' && (
+            <>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {monthOptions.slice(0, 3).map(m => (
+                  <button key={`${m.month}-${m.year}`}
+                    onClick={() => { setSelectedMonth(m.month); setSelectedYear(m.year); setSelectedWeek(1); }}
+                    style={{
+                      padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                      fontSize: 12, transition: 'all 0.15s',
+                      background: selectedMonth === m.month && selectedYear === m.year ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)',
+                      color: 'rgba(255,255,255,0.9)',
+                      fontWeight: selectedMonth === m.month && selectedYear === m.year ? 700 : 400,
+                    }}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {weekOptions.map(w => (
+                  <button key={w.value} onClick={() => setSelectedWeek(w.value)} style={{
+                    padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    fontSize: 12, fontWeight: 500, transition: 'all 0.15s',
+                    background: selectedWeek === w.value ? '#fff' : 'rgba(255,255,255,0.12)',
+                    color: selectedWeek === w.value ? 'var(--jio-blue)' : 'rgba(255,255,255,0.8)',
+                    boxShadow: selectedWeek === w.value ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                  }}>
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Period label */}
+      {/* Period label bar */}
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '12px 14px 0' }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -161,7 +198,6 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Rankings */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div className="spinner" style={{ margin: '0 auto', width: 32, height: 32 }} />
@@ -175,16 +211,9 @@ export default function Leaderboard() {
         ) : rankings.map((emp, i) => {
           const isMe = emp.employee_id === user?.employee_id;
           const rs = i < 3 ? RANK_STYLE[i] : null;
-
-          // Build the subtitle line:
-          // - If it's the logged-in user: show their own Employee ID + region + state
-          // - If it's someone else: show only region + state (NO employee ID)
           const locationParts = [emp.region, emp.state].filter(Boolean);
           const locationText = locationParts.join(' · ');
-
-          const subtitleText = isMe
-            ? [emp.employee_id, locationText].filter(Boolean).join(' · ')
-            : locationText;
+          const subtitleText = isMe ? [emp.employee_id, locationText].filter(Boolean).join(' · ') : locationText;
 
           return (
             <div key={emp.employee_id} style={{
@@ -209,9 +238,16 @@ export default function Leaderboard() {
                 {emp.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: isMe ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: isMe ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   {emp.name}
                   {isMe && <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.2)', padding: '1px 7px', borderRadius: 10 }}>You</span>}
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 10,
+                    background: isMe ? 'rgba(255,255,255,0.15)' : emp.category === 'CSL' ? '#EEF2FF' : '#e6f7fc',
+                    color: isMe ? '#fff' : emp.category === 'CSL' ? 'var(--jio-blue)' : '#0077A8'
+                  }}>
+                    {emp.category}
+                  </span>
                 </div>
                 <div style={{ fontSize: 11, marginTop: 1, color: isMe ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)' }}>
                   {subtitleText}
@@ -228,7 +264,7 @@ export default function Leaderboard() {
         })}
       </div>
 
-      {/* Your Performance — screenshot ready */}
+      {/* Your Performance card */}
       <div style={{ maxWidth: 520, margin: '16px auto 0', padding: '0 14px' }}>
         <div style={{
           background: 'linear-gradient(135deg, #002070 0%, #003fa8 100%)',

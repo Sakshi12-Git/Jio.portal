@@ -1,14 +1,14 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../../utils/api';
 import { useToast } from '../../hooks/useToast';
 
 const CATEGORIES = ['CSL', 'XDSS', 'JDSS'];
 const REGIONS = ['North', 'South', 'East', 'West'];
 const STATES = {
-  North: ['Delhi', 'UP', 'Punjab', 'Haryana', 'Himachal Pradesh', 'Uttarakhand'],
-  South: ['Tamil Nadu', 'Karnataka', 'Kerala', 'Andhra Pradesh', 'Telangana'],
-  East: ['West Bengal', 'Bihar', 'Odisha', 'Jharkhand', 'Assam'],
-  West: ['Maharashtra', 'Gujarat', 'Rajasthan', 'Goa', 'MP'],
+  North: ['Delhi', 'Haryana', 'Punjab', 'Kashmir', 'Rajasthan', 'Jammu', 'Uttar Pradesh (East)', 'Uttar Pradesh (West)', 'Himachal Pradesh', 'Uttarakhand'],
+  South: ['Andhra Pradesh', 'Telangana', 'Kerala', 'Tamil Nadu', 'Karnataka'],
+  West: ['MP & CG', 'Mumbai', 'Mah & Goa', 'Gujarat'],
+  East: ['Assam', 'Kolkata', 'West Bengal', 'Jharkhand', 'Bihar', 'Orissa', 'North East'],
 };
 
 const emptyForm = { employee_id: '', name: '', category: 'CSL', region: 'North', state: 'Delhi', password: '' };
@@ -28,6 +28,8 @@ function Modal({ title, onClose, children, footer }) {
   );
 }
 
+const LIMIT = 15;
+
 export default function Employees() {
   const toast = useToast();
   const [employees, setEmployees] = useState([]);
@@ -41,33 +43,58 @@ export default function Employees() {
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const debounceRef = useRef(null);
 
-  const LIMIT = 15;
-
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = async (s, p, cat) => {
     setLoading(true);
     try {
       const res = await api.get('/admin/employees', {
-        params: { search, page, limit: LIMIT, category: filterCat }
+        params: { search: s, page: p, limit: LIMIT, category: cat }
       });
-      setEmployees(res.data.employees);
-      setTotal(res.data.total);
-    } catch { toast('Failed to load employees', 'error'); }
-    finally { setLoading(false); }
-  }, [search, page, filterCat]);
+      setEmployees(res.data.employees || []);
+      setTotal(res.data.total || 0);
+    } catch {
+      toast('Failed to load employees', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+  useEffect(() => {
+    fetchEmployees(search, page, filterCat);
+  }, [page, filterCat]);
+
+  const handleSearchChange = (val) => {
+    setSearch(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      fetchEmployees(val, 1, filterCat);
+    }, 400);
+  };
+
+  const handleCatChange = (val) => {
+    setFilterCat(val);
+    setPage(1);
+  };
 
   const handleAdd = async () => {
+    if (!form.employee_id.trim() || !form.name.trim() || !form.password.trim()) {
+      toast('Employee ID, Name and Password are required', 'error');
+      return;
+    }
     setSubmitting(true);
     try {
       await api.post('/admin/employees', form);
       toast('Employee added successfully', 'success');
       setShowAdd(false);
       setForm(emptyForm);
-      fetchEmployees();
-    } catch (e) { toast(e.response?.data?.error || 'Failed to add', 'error'); }
-    finally { setSubmitting(false); }
+      fetchEmployees(search, page, filterCat);
+    } catch (e) {
+      toast(e.response?.data?.error || 'Failed to add', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleEdit = async () => {
@@ -76,9 +103,12 @@ export default function Employees() {
       await api.put(`/admin/employees/${editEmp.employee_id}`, form);
       toast('Employee updated', 'success');
       setEditEmp(null);
-      fetchEmployees();
-    } catch (e) { toast(e.response?.data?.error || 'Failed to update', 'error'); }
-    finally { setSubmitting(false); }
+      fetchEmployees(search, page, filterCat);
+    } catch (e) {
+      toast(e.response?.data?.error || 'Failed to update', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = async (empId) => {
@@ -86,18 +116,16 @@ export default function Employees() {
       await api.delete(`/admin/employees/${empId}`);
       toast('Employee deactivated', 'success');
       setDeleteConfirm(null);
-      fetchEmployees();
-    } catch { toast('Failed to deactivate', 'error'); }
+      fetchEmployees(search, page, filterCat);
+    } catch {
+      toast('Failed to deactivate', 'error');
+    }
   };
 
   const openEdit = (emp) => {
     setEditEmp(emp);
     setForm({ name: emp.name, category: emp.category, region: emp.region, state: emp.state, password: '' });
   };
-
-  const F = ({ label, children }) => (
-    <div className="form-row"><label>{label}</label>{children}</div>
-  );
 
   const totalPages = Math.ceil(total / LIMIT);
 
@@ -126,10 +154,11 @@ export default function Employees() {
               style={{ paddingLeft: 36 }}
               placeholder="Search name or employee ID…"
               value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              onChange={e => handleSearchChange(e.target.value)}
             />
           </div>
-          <select className="select" style={{ width: 160 }} value={filterCat} onChange={e => { setFilterCat(e.target.value); setPage(1); }}>
+          <select className="select" style={{ width: 160 }} value={filterCat}
+            onChange={e => handleCatChange(e.target.value)}>
             <option value="">All categories</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -147,7 +176,7 @@ export default function Employees() {
                 <th>Category</th>
                 <th>Region</th>
                 <th>State</th>
-                <th>Points (this week)</th>
+                <th>Installations (this week)</th>
                 <th></th>
               </tr>
             </thead>
@@ -184,8 +213,8 @@ export default function Employees() {
                   <td style={{ color: 'var(--text-secondary)' }}>{emp.region}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{emp.state}</td>
                   <td>
-                    <span style={{ fontWeight: 600, color: 'var(--jio-blue)' }}>
-                      {emp.points?.toLocaleString()}
+                    <span style={{ fontWeight: 600, color: emp.points > 0 ? 'var(--jio-blue)' : 'var(--text-muted)' }}>
+                      {emp.points > 0 ? emp.points?.toLocaleString() : '—'}
                     </span>
                   </td>
                   <td>
@@ -214,14 +243,26 @@ export default function Employees() {
               <button className="page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
                 <i className="ti ti-chevron-left" />
               </button>
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                const pg = i + 1;
-                return (
-                  <button key={pg} className={`page-btn ${page === pg ? 'active' : ''}`} onClick={() => setPage(pg)}>
-                    {pg}
-                  </button>
-                );
-              })}
+              {(() => {
+                const pages = [];
+                let start = Math.max(1, page - 3);
+                let end = Math.min(totalPages, start + 6);
+                if (end - start < 6) start = Math.max(1, end - 6);
+                if (start > 1) {
+                  pages.push(<button key={1} className="page-btn" onClick={() => setPage(1)}>1</button>);
+                  if (start > 2) pages.push(<span key="s1" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>…</span>);
+                }
+                for (let pg = start; pg <= end; pg++) {
+                  pages.push(
+                    <button key={pg} className={`page-btn ${page === pg ? 'active' : ''}`} onClick={() => setPage(pg)}>{pg}</button>
+                  );
+                }
+                if (end < totalPages) {
+                  if (end < totalPages - 1) pages.push(<span key="s2" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>…</span>);
+                  pages.push(<button key={totalPages} className="page-btn" onClick={() => setPage(totalPages)}>{totalPages}</button>);
+                }
+                return pages;
+              })()}
               <button className="page-btn" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>
                 <i className="ti ti-chevron-right" />
               </button>
@@ -232,93 +273,102 @@ export default function Employees() {
 
       {/* Add Modal */}
       {showAdd && (
-        <Modal
-          title="Add Employee"
-          onClose={() => setShowAdd(false)}
+        <Modal title="Add Employee" onClose={() => setShowAdd(false)}
           footer={<>
             <button className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
             <button className="btn btn-primary" onClick={handleAdd} disabled={submitting}>
               {submitting ? 'Adding…' : 'Add Employee'}
             </button>
-          </>}
-        >
+          </>}>
           <div className="form-grid">
-            <F label="Employee ID">
-              <input className="input" placeholder="JIO-XXXXX" value={form.employee_id}
-                onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))} />
-            </F>
-            <F label="Full Name">
-              <input className="input" placeholder="Name" value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-            </F>
-            <F label="Category">
+            <div className="form-row">
+              <label>Employee ID</label>
+              <input className="input" placeholder="e.g. 12345678"
+                value={form.employee_id}
+                onChange={e => setForm(prev => ({ ...prev, employee_id: e.target.value }))} />
+            </div>
+            <div className="form-row">
+              <label>Full Name</label>
+              <input className="input" placeholder="Full name"
+                value={form.name}
+                onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
+            </div>
+            <div className="form-row">
+              <label>Category</label>
               <select className="select" value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))}>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
-            </F>
-            <F label="Region">
+            </div>
+            <div className="form-row">
+              <label>Region</label>
               <select className="select" value={form.region}
-                onChange={e => setForm(f => ({ ...f, region: e.target.value, state: STATES[e.target.value][0] }))}>
+                onChange={e => setForm(prev => ({ ...prev, region: e.target.value, state: STATES[e.target.value][0] }))}>
                 {REGIONS.map(r => <option key={r}>{r}</option>)}
               </select>
-            </F>
-            <F label="State">
+            </div>
+            <div className="form-row">
+              <label>State</label>
               <select className="select" value={form.state}
-                onChange={e => setForm(f => ({ ...f, state: e.target.value }))}>
+                onChange={e => setForm(prev => ({ ...prev, state: e.target.value }))}>
                 {(STATES[form.region] || []).map(s => <option key={s}>{s}</option>)}
               </select>
-            </F>
-            <F label="Password">
+            </div>
+            <div className="form-row">
+              <label>Password</label>
               <input className="input" type="password" placeholder="Set password"
-                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-            </F>
+                value={form.password}
+                onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))} />
+            </div>
           </div>
         </Modal>
       )}
 
       {/* Edit Modal */}
       {editEmp && (
-        <Modal
-          title={`Edit: ${editEmp.name}`}
-          onClose={() => setEditEmp(null)}
+        <Modal title={`Edit: ${editEmp.name}`} onClose={() => setEditEmp(null)}
           footer={<>
             <button className="btn btn-secondary" onClick={() => setEditEmp(null)}>Cancel</button>
             <button className="btn btn-primary" onClick={handleEdit} disabled={submitting}>
               {submitting ? 'Saving…' : 'Save Changes'}
             </button>
-          </>}
-        >
+          </>}>
           <div style={{ padding: '6px 12px', background: 'var(--border-light)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
             <i className="ti ti-id" style={{ marginRight: 6 }} />{editEmp.employee_id}
           </div>
           <div className="form-grid">
-            <F label="Full Name">
+            <div className="form-row">
+              <label>Full Name</label>
               <input className="input" value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-            </F>
-            <F label="Category">
+                onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
+            </div>
+            <div className="form-row">
+              <label>Category</label>
               <select className="select" value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))}>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
-            </F>
-            <F label="Region">
+            </div>
+            <div className="form-row">
+              <label>Region</label>
               <select className="select" value={form.region}
-                onChange={e => setForm(f => ({ ...f, region: e.target.value, state: STATES[e.target.value][0] }))}>
+                onChange={e => setForm(prev => ({ ...prev, region: e.target.value, state: STATES[e.target.value][0] }))}>
                 {REGIONS.map(r => <option key={r}>{r}</option>)}
               </select>
-            </F>
-            <F label="State">
+            </div>
+            <div className="form-row">
+              <label>State</label>
               <select className="select" value={form.state}
-                onChange={e => setForm(f => ({ ...f, state: e.target.value }))}>
+                onChange={e => setForm(prev => ({ ...prev, state: e.target.value }))}>
                 {(STATES[form.region] || []).map(s => <option key={s}>{s}</option>)}
               </select>
-            </F>
-            <F label="New Password (leave blank to keep)">
+            </div>
+            <div className="form-row">
+              <label>New Password (leave blank to keep)</label>
               <input className="input" type="password" placeholder="Leave blank to keep current"
-                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-            </F>
+                value={form.password}
+                onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))} />
+            </div>
           </div>
         </Modal>
       )}
@@ -331,9 +381,8 @@ export default function Employees() {
             <button className="btn btn-danger" onClick={() => handleDelete(deleteConfirm.employee_id)}>
               Deactivate
             </button>
-          </>}
-        >
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+          </>}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 8 }}>
             Are you sure you want to deactivate <strong>{deleteConfirm.name}</strong> ({deleteConfirm.employee_id})?
             They will no longer be able to log in.
           </p>

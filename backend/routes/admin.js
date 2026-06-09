@@ -5,9 +5,16 @@ import { getDB, saveDB } from '../db.js';
 import { adminAuth, JWT_SECRET } from '../middleware.js';
 
 const router = express.Router();
-
-// Track active admin sessions (max 3)
 const activeSessions = new Map();
+
+// Helper: get week of month (1-4) from current date
+function getCurrentWeekOfMonth() {
+  const day = new Date().getDate();
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+}
 
 // POST /api/admin/login
 router.post('/login', (req, res) => {
@@ -28,7 +35,6 @@ router.post('/login', (req, res) => {
   if (!bcrypt.compareSync(password, hash))
     return res.status(401).json({ error: 'Invalid credentials' });
 
-  // Enforce max 3 simultaneous admin logins
   const activeCount = activeSessions.size;
   if (activeCount >= 3 && !activeSessions.has(id)) {
     return res.status(403).json({ error: 'Maximum 3 admin sessions active. Please try again later.' });
@@ -41,7 +47,6 @@ router.post('/login', (req, res) => {
   );
 
   activeSessions.set(id, { token, loginTime: Date.now() });
-
   return res.json({ token, admin: { id, username: uname, name } });
 });
 
@@ -56,9 +61,7 @@ router.get('/settings', adminAuth, (req, res) => {
   const db = getDB();
   const result = db.exec("SELECT key, value FROM settings");
   const settings = {};
-  if (result.length) {
-    result[0].values.forEach(([k, v]) => { settings[k] = v; });
-  }
+  if (result.length) result[0].values.forEach(([k, v]) => { settings[k] = v; });
   res.json(settings);
 });
 
@@ -66,12 +69,10 @@ router.get('/settings', adminAuth, (req, res) => {
 router.put('/settings', adminAuth, (req, res) => {
   const { campaign_name, tagline } = req.body;
   const db = getDB();
-  if (campaign_name !== undefined) {
+  if (campaign_name !== undefined)
     db.run("INSERT OR REPLACE INTO settings VALUES ('campaign_name', ?)", [campaign_name]);
-  }
-  if (tagline !== undefined) {
+  if (tagline !== undefined)
     db.run("INSERT OR REPLACE INTO settings VALUES ('tagline', ?)", [tagline]);
-  }
   saveDB();
   res.json({ message: 'Settings updated' });
 });
@@ -87,11 +88,63 @@ router.get('/stats', adminAuth, (req, res) => {
   res.json({ total, csl, xdss, jdss, adminsActive, maxAdmins: 3 });
 });
 
-// GET /api/admin/employees?search=&page=1&limit=20&category=
+// GET /api/admin/installation-stats
+router.get('/installation-stats', adminAuth, (req, res) => {
+  const db = getDB();
+  const now = new Date();
+  const w = parseInt(req.query.week) || getCurrentWeekOfMonth();
+  const m = parseInt(req.query.month) || now.getMonth() + 1;
+  const y = parseInt(req.query.year) || now.getFullYear();
+
+  const totalRes = db.exec(
+    `SELECT COALESCE(SUM(p.points), 0), COUNT(DISTINCT p.employee_id)
+     FROM points p JOIN employees e ON p.employee_id = e.employee_id
+     WHERE p.week=? AND p.month=? AND p.year=? AND e.active=1`, [w, m, y]
+  );
+  const cslRes = db.exec(
+    `SELECT COALESCE(SUM(p.points), 0) FROM points p
+     JOIN employees e ON p.employee_id = e.employee_id
+     WHERE p.week=? AND p.month=? AND p.year=? AND e.active=1 AND e.category='CSL'`, [w, m, y]
+  );
+  const xdssRes = db.exec(
+    `SELECT COALESCE(SUM(p.points), 0) FROM points p
+     JOIN employees e ON p.employee_id = e.employee_id
+     WHERE p.week=? AND p.month=? AND p.year=? AND e.active=1 AND e.category='XDSS'`, [w, m, y]
+  );
+  const jdssRes = db.exec(
+    `SELECT COALESCE(SUM(p.points), 0) FROM points p
+     JOIN employees e ON p.employee_id = e.employee_id
+     WHERE p.week=? AND p.month=? AND p.year=? AND e.active=1 AND e.category='JDSS'`, [w, m, y]
+  );
+  const topRes = db.exec(
+    `SELECT e.name, e.category, p.points
+     FROM points p JOIN employees e ON p.employee_id = e.employee_id
+     WHERE p.week=? AND p.month=? AND p.year=? AND e.active=1
+     ORDER BY p.points DESC LIMIT 1`, [w, m, y]
+  );
+
+  res.json({
+    total: totalRes[0]?.values[0][0] || 0,
+    activeEmployees: totalRes[0]?.values[0][1] || 0,
+    csl: cslRes[0]?.values[0][0] || 0,
+    xdss: xdssRes[0]?.values[0][0] || 0,
+    jdss: jdssRes[0]?.values[0][0] || 0,
+    topPerformer: topRes[0]?.values[0]
+      ? { name: topRes[0].values[0][0], category: topRes[0].values[0][1], points: topRes[0].values[0][2] }
+      : null,
+    week: w, month: m, year: y
+  });
+});
+
+// GET /api/admin/employees
 router.get('/employees', adminAuth, (req, res) => {
   const { search = '', page = 1, limit = 20, category = '' } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const db = getDB();
+  const now = new Date();
+  const currentWeek = getCurrentWeekOfMonth();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
   let whereClauses = ['e.active = 1'];
   let params = [];
@@ -106,11 +159,7 @@ router.get('/employees', adminAuth, (req, res) => {
   }
 
   const where = whereClauses.join(' AND ');
-
-  const countResult = db.exec(
-    `SELECT COUNT(*) FROM employees e WHERE ${where}`,
-    params
-  );
+  const countResult = db.exec(`SELECT COUNT(*) FROM employees e WHERE ${where}`, params);
   const total = countResult[0].values[0][0];
 
   const dataResult = db.exec(
@@ -118,12 +167,11 @@ router.get('/employees', adminAuth, (req, res) => {
             COALESCE(p.points, 0) as points, e.created_at
      FROM employees e
      LEFT JOIN points p ON e.employee_id = p.employee_id
-       AND p.year = strftime('%Y', 'now')
-       AND p.week = CAST(strftime('%W', 'now') AS INTEGER)
+       AND p.week = ? AND p.month = ? AND p.year = ?
      WHERE ${where}
      ORDER BY points DESC
      LIMIT ? OFFSET ?`,
-    [...params, parseInt(limit), offset]
+    [...params, currentWeek, currentMonth, currentYear, parseInt(limit), offset]
   );
 
   const employees = dataResult.length ? dataResult[0].values.map(row => ({
@@ -135,18 +183,22 @@ router.get('/employees', adminAuth, (req, res) => {
   res.json({ employees, total, page: parseInt(page), limit: parseInt(limit) });
 });
 
-// GET /api/admin/employees/:id
+// GET /api/admin/employees/:empId
 router.get('/employees/:empId', adminAuth, (req, res) => {
   const db = getDB();
+  const now = new Date();
+  const currentWeek = getCurrentWeekOfMonth();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
   const result = db.exec(
     `SELECT e.id, e.employee_id, e.name, e.category, e.region, e.state, e.active, e.created_at,
             COALESCE(p.points, 0) as current_points
      FROM employees e
      LEFT JOIN points p ON e.employee_id = p.employee_id
-       AND p.year = strftime('%Y', 'now')
-       AND p.week = CAST(strftime('%W', 'now') AS INTEGER)
+       AND p.week = ? AND p.month = ? AND p.year = ?
      WHERE e.employee_id = ?`,
-    [req.params.empId]
+    [currentWeek, currentMonth, currentYear, req.params.empId]
   );
   if (!result.length || !result[0].values.length)
     return res.status(404).json({ error: 'Employee not found' });
@@ -203,7 +255,7 @@ router.put('/employees/:empId', adminAuth, (req, res) => {
   res.json({ message: 'Employee updated' });
 });
 
-// DELETE /api/admin/employees/:empId (soft delete)
+// DELETE /api/admin/employees/:empId
 router.delete('/employees/:empId', adminAuth, (req, res) => {
   const db = getDB();
   db.run("UPDATE employees SET active=0 WHERE employee_id=?", [req.params.empId]);
@@ -219,7 +271,7 @@ router.put('/points', adminAuth, (req, res) => {
 
   const db = getDB();
   const now = new Date();
-  const w = week || getWeekNumber(now);
+  const w = week || getCurrentWeekOfMonth();
   const m = month || (now.getMonth() + 1);
   const y = year || now.getFullYear();
 
@@ -233,17 +285,27 @@ router.put('/points', adminAuth, (req, res) => {
   res.json({ message: 'Points updated' });
 });
 
-// GET /api/admin/rankings?scope=national|regional|state&category=CSL&region=North&state=Delhi
+// GET /api/admin/rankings
 router.get('/rankings', adminAuth, (req, res) => {
-  const { scope = 'national', category, region, state, week, year } = req.query;
+  const { scope = 'national', category, region, state, week, month, year, mode = 'week' } = req.query;
   const db = getDB();
-
   const now = new Date();
-  const w = parseInt(week) || getWeekNumber(now);
+  const w = parseInt(week) || getCurrentWeekOfMonth();
+  const m = parseInt(month) || now.getMonth() + 1;
   const y = parseInt(year) || now.getFullYear();
 
-  let whereClauses = ['e.active = 1', 'p.week = ?', 'p.year = ?'];
-  let params = [w, y];
+  let whereClauses = ['e.active = 1'];
+  let params = [];
+
+  if (mode === 'month') {
+    // Monthly: sum all weeks for that month
+    whereClauses.push('p.month = ?', 'p.year = ?');
+    params = [m, y];
+  } else {
+    // Weekly
+    whereClauses.push('p.week = ?', 'p.month = ?', 'p.year = ?');
+    params = [w, m, y];
+  }
 
   if (category) { whereClauses.push('e.category = ?'); params.push(category); }
   if (scope === 'regional' && region) { whereClauses.push('e.region = ?'); params.push(region); }
@@ -251,34 +313,46 @@ router.get('/rankings', adminAuth, (req, res) => {
 
   const where = whereClauses.join(' AND ');
 
-  const result = db.exec(
-    `SELECT e.employee_id, e.name, e.category, e.region, e.state,
-            p.points, ROW_NUMBER() OVER (ORDER BY p.points DESC) as rank
-     FROM employees e
-     JOIN points p ON e.employee_id = p.employee_id
-     WHERE ${where}
-     ORDER BY p.points DESC
-     LIMIT 10`,
-    params
-  );
+  let query;
+  if (mode === 'month') {
+    query = `SELECT e.employee_id, e.name, e.category, e.region, e.state,
+              SUM(p.points) as total_points,
+              ROW_NUMBER() OVER (ORDER BY SUM(p.points) DESC) as rank
+             FROM employees e
+             JOIN points p ON e.employee_id = p.employee_id
+             WHERE ${where}
+             GROUP BY e.employee_id
+             ORDER BY total_points DESC
+             LIMIT 10`;
+  } else {
+    query = `SELECT e.employee_id, e.name, e.category, e.region, e.state,
+              p.points,
+              ROW_NUMBER() OVER (ORDER BY p.points DESC) as rank
+             FROM employees e
+             JOIN points p ON e.employee_id = p.employee_id
+             WHERE ${where}
+             ORDER BY p.points DESC
+             LIMIT 10`;
+  }
 
+  const result = db.exec(query, params);
   const rankings = result.length ? result[0].values.map(r => ({
     employee_id: r[0], name: r[1], category: r[2],
     region: r[3], state: r[4], points: r[5], rank: r[6]
   })) : [];
 
-  res.json({ rankings, scope, week: w, year: y });
+  res.json({ rankings, scope, week: w, month: m, year: y });
 });
 
-// GET /api/admin/bulk-import preview + POST for actual import
+// POST /api/admin/bulk-points
 router.post('/bulk-points', adminAuth, (req, res) => {
-  const { updates } = req.body; // [{employee_id, points}]
+  const { updates } = req.body;
   if (!Array.isArray(updates))
     return res.status(400).json({ error: 'updates must be an array' });
 
   const db = getDB();
   const now = new Date();
-  const week = getWeekNumber(now);
+  const week = getCurrentWeekOfMonth();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
@@ -286,10 +360,7 @@ router.post('/bulk-points', adminAuth, (req, res) => {
 
   updates.forEach(({ employee_id, points }) => {
     const exists = db.exec("SELECT id FROM employees WHERE employee_id=? AND active=1", [employee_id]);
-    if (!exists.length || !exists[0].values.length) {
-      failed.push(employee_id);
-      return;
-    }
+    if (!exists.length || !exists[0].values.length) { failed.push(employee_id); return; }
     db.run(
       `INSERT INTO points (employee_id, points, week, month, year)
        VALUES (?,?,?,?,?)
@@ -302,12 +373,5 @@ router.post('/bulk-points', adminAuth, (req, res) => {
   saveDB();
   res.json({ success, failed, total: updates.length });
 });
-
-function getWeekNumber(d) {
-  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-}
 
 export default router;
