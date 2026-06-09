@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Component } from 'react';
+import { Component, useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
 import './index.css';
 import JIO_LOGO from './utils/jioLogo';
+import api from './utils/api';
 
 class ErrorBoundary extends Component {
   state = { error: null };
@@ -48,6 +49,11 @@ function RequireEmployee({ children }) {
 function EmployeeDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [logoUrl, setLogoUrl] = useState('');
+
+  useEffect(() => {
+    api.get('/employee/settings').then(r => setLogoUrl(r.data.logo_url || '')).catch(() => {});
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -57,7 +63,7 @@ function EmployeeDashboard() {
         background: 'var(--jio-blue)', padding: '16px 20px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
-        <img src={JIO_LOGO} alt="Jio" style={{ width: 40, height: 40, borderRadius: '50%' }} />
+        <img src={logoUrl || JIO_LOGO} alt="Jio" style={{ width: 40, height: 40, borderRadius: '50%' }} />
         <button onClick={() => { logout(); navigate('/'); }} style={{
           background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
           padding: '7px 16px', borderRadius: 8, fontSize: 13, cursor: 'pointer'
