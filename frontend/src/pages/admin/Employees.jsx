@@ -7,8 +7,8 @@ const REGIONS = ['North', 'South', 'East', 'West'];
 const STATES = {
   North: ['Delhi', 'Haryana', 'Punjab', 'Kashmir', 'Rajasthan', 'Jammu', 'Uttar Pradesh (East)', 'Uttar Pradesh (West)', 'Himachal Pradesh', 'Uttarakhand'],
   South: ['Andhra Pradesh', 'Telangana', 'Kerala', 'Tamil Nadu', 'Karnataka'],
-  West: ['MP & CG', 'Mumbai', 'Mah & Goa', 'Gujarat'],
-  East: ['Assam', 'Kolkata', 'West Bengal', 'Jharkhand', 'Bihar', 'Orissa', 'North East'],
+  West:  ['MP & CG', 'Mumbai', 'Mah & Goa', 'Gujarat'],
+  East:  ['Assam', 'Kolkata', 'West Bengal', 'Jharkhand', 'Bihar', 'Orissa', 'North East'],
 };
 
 const emptyForm = { employee_id: '', name: '', category: 'CSL', region: 'North', state: 'Delhi', password: '' };
@@ -18,10 +18,11 @@ function PwdInput({ value, onChange, placeholder }) {
   return (
     <div style={{ position: 'relative' }}>
       <input className="input" type={show ? 'text' : 'password'} placeholder={placeholder}
-        style={{ paddingRight: 40 }} value={value} onChange={onChange} />
+        style={{ paddingRight: 42 }} value={value} onChange={onChange} />
       <button type="button" onClick={() => setShow(s => !s)} style={{
         position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, lineHeight: 1,
+        background: 'none', border: 'none', cursor: 'pointer',
+        color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, padding: 2,
       }}>
         <i className={`ti ${show ? 'ti-eye-off' : 'ti-eye'}`} />
       </button>
@@ -45,6 +46,10 @@ function Modal({ title, onClose, children, footer }) {
 }
 
 const LIMIT = 15;
+
+function getInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
 
 export default function Employees() {
   const toast = useToast();
@@ -150,11 +155,11 @@ export default function Employees() {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      {/* Page header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Employees</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700 }}>Employees</h1>
+          <p style={{ fontSize: 14, marginTop: 4 }}>
             {total.toLocaleString()} total employees
           </p>
         </div>
@@ -166,17 +171,20 @@ export default function Employees() {
       {/* Filters */}
       <div className="card" style={{ marginBottom: 16, padding: '14px 16px' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
-            <i className="ti ti-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 16 }} />
+          <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
+            <i className="ti ti-search" style={{
+              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+              color: 'var(--text-muted)', fontSize: 16,
+            }} />
             <input
               className="input"
-              style={{ paddingLeft: 36 }}
+              style={{ paddingLeft: 38 }}
               placeholder="Search name or employee ID…"
               value={search}
               onChange={e => handleSearchChange(e.target.value)}
             />
           </div>
-          <select className="select" style={{ width: 160 }} value={filterCat}
+          <select className="select" style={{ width: 168 }} value={filterCat}
             onChange={e => handleCatChange(e.target.value)}>
             <option value="">All categories</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -196,41 +204,51 @@ export default function Employees() {
                 <th>Region</th>
                 <th>State</th>
                 <th>Installations (this week)</th>
-                <th></th>
+                <th style={{ width: 100 }}></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                  <div className="spinner" style={{ margin: '0 auto 8px' }} /> Loading…
-                </td></tr>
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>
+                    <div className="spinner" style={{ margin: '0 auto 10px' }} />
+                    <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
+                  </td>
+                </tr>
               ) : employees.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                  No employees found
-                </td></tr>
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px' }}>
+                    <i className="ti ti-users-minus" style={{ fontSize: 40, color: 'var(--border)', display: 'block', marginBottom: 10 }} />
+                    <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>No employees found</div>
+                  </td>
+                </tr>
               ) : employees.map(emp => (
                 <tr key={emp.employee_id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
-                        width: 34, height: 34, borderRadius: '50%',
+                        width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                         background: 'var(--jio-blue)', color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 600, flexShrink: 0
+                        fontSize: 12, fontWeight: 700,
                       }}>
-                        {emp.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                        {getInitials(emp.name)}
                       </div>
                       <span style={{ fontWeight: 500 }}>{emp.name}</span>
                     </div>
                   </td>
-                  <td><span style={{ fontFamily: 'monospace', fontSize: 13 }}>{emp.employee_id}</span></td>
+                  <td>
+                    <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {emp.employee_id}
+                    </span>
+                  </td>
                   <td>
                     <span className={`badge ${emp.category === 'CSL' ? 'badge-blue' : 'badge-teal'}`}>
                       {emp.category}
                     </span>
                   </td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{emp.region}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{emp.state}</td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{emp.region}</td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{emp.state}</td>
                   <td>
                     <span style={{ fontWeight: 600, color: emp.points > 0 ? 'var(--jio-blue)' : 'var(--text-muted)' }}>
                       {emp.points > 0 ? emp.points?.toLocaleString() : '—'}
@@ -238,10 +256,11 @@ export default function Employees() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(emp)}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(emp)} title="Edit">
                         <i className="ti ti-edit" />
                       </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm(emp)}>
+                      <button className="btn btn-sm" onClick={() => setDeleteConfirm(emp)} title="Deactivate"
+                        style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center' }}>
                         <i className="ti ti-trash" />
                       </button>
                     </div>
@@ -254,7 +273,15 @@ export default function Employees() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{
+            padding: '14px 18px',
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               Showing {((page - 1) * LIMIT) + 1}–{Math.min(page * LIMIT, total)} of {total.toLocaleString()}
             </span>
@@ -269,7 +296,7 @@ export default function Employees() {
                 if (end - start < 6) start = Math.max(1, end - 6);
                 if (start > 1) {
                   pages.push(<button key={1} className="page-btn" onClick={() => setPage(1)}>1</button>);
-                  if (start > 2) pages.push(<span key="s1" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>…</span>);
+                  if (start > 2) pages.push(<span key="s1" style={{ padding: '0 4px', color: 'var(--text-muted)', fontSize: 13 }}>…</span>);
                 }
                 for (let pg = start; pg <= end; pg++) {
                   pages.push(
@@ -277,7 +304,7 @@ export default function Employees() {
                   );
                 }
                 if (end < totalPages) {
-                  if (end < totalPages - 1) pages.push(<span key="s2" style={{ padding: '0 4px', color: 'var(--text-muted)' }}>…</span>);
+                  if (end < totalPages - 1) pages.push(<span key="s2" style={{ padding: '0 4px', color: 'var(--text-muted)', fontSize: 13 }}>…</span>);
                   pages.push(<button key={totalPages} className="page-btn" onClick={() => setPage(totalPages)}>{totalPages}</button>);
                 }
                 return pages;
@@ -296,7 +323,7 @@ export default function Employees() {
           footer={<>
             <button className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
             <button className="btn btn-primary" onClick={handleAdd} disabled={submitting}>
-              {submitting ? 'Adding…' : 'Add Employee'}
+              {submitting ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Adding…</> : 'Add Employee'}
             </button>
           </>}>
           <div className="form-grid">
@@ -348,11 +375,17 @@ export default function Employees() {
           footer={<>
             <button className="btn btn-secondary" onClick={() => setEditEmp(null)}>Cancel</button>
             <button className="btn btn-primary" onClick={handleEdit} disabled={submitting}>
-              {submitting ? 'Saving…' : 'Save Changes'}
+              {submitting ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving…</> : 'Save Changes'}
             </button>
           </>}>
-          <div style={{ padding: '6px 12px', background: 'var(--border-light)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
-            <i className="ti ti-id" style={{ marginRight: 6 }} />{editEmp.employee_id}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '8px 12px', background: 'var(--jio-blue-light)',
+            borderRadius: 8, marginBottom: 18, fontSize: 13,
+            color: 'var(--jio-blue)',
+          }}>
+            <i className="ti ti-id" />
+            <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{editEmp.employee_id}</span>
           </div>
           <div className="form-grid">
             <div className="form-row">
@@ -381,8 +414,8 @@ export default function Employees() {
                 {(STATES[form.region] || []).map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
-            <div className="form-row">
-              <label>New Password (leave blank to keep)</label>
+            <div className="form-row" style={{ gridColumn: '1 / -1' }}>
+              <label>New Password <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(leave blank to keep)</span></label>
               <PwdInput placeholder="Leave blank to keep current" value={form.password}
                 onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))} />
             </div>
@@ -396,13 +429,29 @@ export default function Employees() {
           footer={<>
             <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>Cancel</button>
             <button className="btn btn-danger" onClick={() => handleDelete(deleteConfirm.employee_id)}>
-              Deactivate
+              <i className="ti ti-user-off" /> Deactivate
             </button>
           </>}>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 8 }}>
-            Are you sure you want to deactivate <strong>{deleteConfirm.name}</strong> ({deleteConfirm.employee_id})?
-            They will no longer be able to log in.
-          </p>
+          <div style={{
+            display: 'flex', gap: 14, padding: '4px 0',
+          }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <i className="ti ti-alert-triangle" style={{ fontSize: 22, color: '#DC2626' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 4 }}>
+                Are you sure you want to deactivate{' '}
+                <strong>{deleteConfirm.name}</strong>?
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Employee ID: <span style={{ fontFamily: 'monospace' }}>{deleteConfirm.employee_id}</span>
+                {' '}— They will no longer be able to log in.
+              </p>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

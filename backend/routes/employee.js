@@ -200,7 +200,7 @@ function getUserRankData(db, employeeId, w, m, y, scope, catFilter, mode, region
       `WITH ranked AS (
         SELECT e.employee_id, SUM(p.points) as points,
                ROW_NUMBER() OVER (ORDER BY SUM(p.points) DESC) as rank,
-               COUNT(DISTINCT e.employee_id) OVER () as total
+               COUNT(*) OVER () as total
         FROM employees e
         JOIN points p ON e.employee_id = p.employee_id
         WHERE e.active=1 AND p.month=? AND p.year=? ${catFilter} ${scopeFilter}

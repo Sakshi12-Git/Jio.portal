@@ -46,18 +46,22 @@ export default function Points() {
 
   return (
     <div>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>Installations Management</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 }}>
-          Update employee installation counts individually or in bulk
-        </p>
+      <div className="page-header">
+        <h1 style={{ fontSize: 26 }}>Installations Management</h1>
+        <p>Update employee installation counts individually or in bulk</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        {/* Single */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="points-grid">
+
+        {/* Single update */}
         <div className="card">
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Single Update</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>Update installations for one employee</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--jio-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <i className="ti ti-user-check" style={{ fontSize: 18, color: 'var(--jio-blue)' }} />
+            </div>
+            <h3 style={{ fontSize: 16 }}>Single Update</h3>
+          </div>
+          <p style={{ fontSize: 13, marginBottom: 24 }}>Update installations for one employee</p>
           <form onSubmit={handleSingle}>
             <div className="form-row">
               <label>Employee ID</label>
@@ -68,58 +72,84 @@ export default function Points() {
               <input className="input" type="number" min="0" placeholder="e.g. 42" value={singlePts} onChange={e => setSinglePts(e.target.value)} required />
             </div>
             <button type="submit" className="btn btn-primary" disabled={singleLoading}>
-              {singleLoading ? 'Updating…' : <><i className="ti ti-home-check" /> Update Installations</>}
+              {singleLoading
+                ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Updating…</>
+                : <><i className="ti ti-home-check" /> Update Installations</>
+              }
             </button>
           </form>
         </div>
 
-        {/* Bulk */}
+        {/* Bulk update */}
         <div className="card">
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Bulk Update</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-            Paste data: <code style={{ background: 'var(--border-light)', padding: '1px 6px', borderRadius: 4, fontSize: 12 }}>employee_id, installations</code> per line
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--jio-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <i className="ti ti-list-check" style={{ fontSize: 18, color: 'var(--jio-blue)' }} />
+            </div>
+            <h3 style={{ fontSize: 16 }}>Bulk Update</h3>
+          </div>
+          <p style={{ fontSize: 13, marginBottom: 16 }}>
+            Paste data:&nbsp;
+            <code style={{ background: 'var(--border-light)', padding: '2px 7px', borderRadius: 5, fontSize: 12, fontFamily: 'monospace' }}>
+              employee_id, installations
+            </code>
+            &nbsp;per line
           </p>
           <div className="form-row">
             <label>Data (one per line)</label>
-            <textarea className="input" rows={8}
-              style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: 13 }}
+            <textarea
+              className="input"
+              rows={8}
+              style={{ height: 'auto', resize: 'vertical', fontFamily: 'monospace', fontSize: 13 }}
               placeholder={"JIO-01000, 45\nJIO-01001, 38\nJIO-01002, 52"}
-              value={bulkText} onChange={e => { setBulkText(e.target.value); setBulkResult(null); }} />
+              value={bulkText}
+              onChange={e => { setBulkText(e.target.value); setBulkResult(null); }}
+            />
           </div>
+
           {bulkResult && (
             <div style={{
-              padding: '10px 14px', borderRadius: 8, marginBottom: 14,
+              padding: '12px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13,
               background: bulkResult.failed?.length ? '#FEF3C7' : '#D1FAE5',
               border: `1px solid ${bulkResult.failed?.length ? '#FCD34D' : '#6EE7B7'}`,
-              fontSize: 13
             }}>
               <strong>✓ {bulkResult.success}</strong> updated
               {bulkResult.failed?.length > 0 && (
-                <div style={{ marginTop: 4, color: '#92400E' }}>✕ Failed: {bulkResult.failed.join(', ')}</div>
+                <div style={{ marginTop: 5, color: '#92400E' }}>✕ Failed: {bulkResult.failed.join(', ')}</div>
               )}
             </div>
           )}
+
           <button className="btn btn-primary" onClick={handleBulk} disabled={bulkLoading || !bulkText.trim()}>
-            {bulkLoading ? 'Processing…' : <><i className="ti ti-upload" /> Upload Bulk Installations</>}
+            {bulkLoading
+              ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Processing…</>
+              : <><i className="ti ti-upload" /> Upload Bulk Installations</>
+            }
           </button>
         </div>
       </div>
 
       {/* Tip */}
-      <div className="card" style={{ marginTop: 20, background: 'var(--jio-teal-light)', border: '1px solid #b3e9f7' }}>
-        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: 'var(--jio-blue)' }}>
-          <i className="ti ti-bulb" style={{ marginRight: 6 }} />
-          Tip: Use Excel Upload for bulk data
-        </h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-          For large daily updates, use the <strong>Excel Upload</strong> page — upload a sheet with Employee ID, Installations, and Date columns and it will accumulate counts automatically.
-          Use this page only for quick one-off corrections.
-        </p>
+      <div className="card" style={{ marginTop: 20, background: 'var(--jio-blue-light)', border: '1px solid #C7D2FE' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--jio-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+            <i className="ti ti-bulb" style={{ fontSize: 18, color: '#fff' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--jio-blue)', marginBottom: 4 }}>
+              Tip: Use Excel Upload for bulk data
+            </div>
+            <p style={{ fontSize: 13 }}>
+              For large daily updates, use the <strong>Excel Upload</strong> page — upload a sheet with Employee ID, Installations,
+              and Date columns and it will accumulate counts automatically. Use this page only for quick one-off corrections.
+            </p>
+          </div>
+        </div>
       </div>
 
       <style>{`
         @media (max-width: 768px) {
-          div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+          .points-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
