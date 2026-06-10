@@ -71,19 +71,19 @@ export default function AdminDashboard() {
 
   const HOW_TO_USE = [
     {
-      step: '1', icon: 'ti-file-spreadsheet', color: 'var(--jio-blue)',
-      title: 'Upload Employee Data',
-      desc: 'Go to Excel Upload → Download the template → Fill Employee IDs, Names, Category (CSL/XDSS/JDSS), Region, State, and Mobile number → Upload.'
+      step: '1', icon: 'ti-users', color: 'var(--jio-blue)',
+      title: 'Upload Employees (One Time)',
+      desc: 'Go to Excel Upload → Download the Employees template → Fill Employee IDs, Names, Category (CSL/XDSS/JDSS), Region, State, and Mobile → Upload. Do this once — employees stay saved permanently.'
     },
     {
       step: '2', icon: 'ti-lock', color: '#7C3AED',
       title: 'Share Login Credentials',
-      desc: 'Passwords are auto-generated as EP@ + last 5 digits of mobile number. Share Employee ID and password with each employee.'
+      desc: 'Passwords are auto-generated as EP@ + last 5 digits of mobile number. Share the Employee ID and password with each employee so they can log in.'
     },
     {
       step: '3', icon: 'ti-home-check', color: 'var(--success)',
       title: 'Upload Daily Installations',
-      desc: 'Every day, download the template → fill Employee ID, installations count, and today\'s date (DD-MM-YYYY) → Upload. Daily counts add up automatically.'
+      desc: 'Every day, go to Excel Upload → Download the Installations template → Fill Employee ID, Name, number of installations, and today\'s date (DD-MM-YYYY) → Upload. Daily counts add up to the weekly total automatically.'
     },
     {
       step: '4', icon: 'ti-trophy', color: 'var(--warning)',
@@ -105,34 +105,23 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      {/* Page header */}
       <div className="page-header">
-        <h1 style={{ fontSize: 26 }}>
-          Welcome back, {user?.name}
-        </h1>
+        <h1 style={{ fontSize: 26 }}>Welcome back, {user?.name}</h1>
         <p style={{ fontSize: 14, marginTop: 4 }}>
           {settings.campaign_name} &nbsp;·&nbsp; {weekLabel} &nbsp;·&nbsp; {monthLabel}
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-        gap: 16,
-        marginBottom: 28,
-      }}>
-        <KpiCard icon="ti-users"         label="Total Employees"        value={stats?.total?.toLocaleString() || '0'}           color="var(--jio-blue)" />
-        <KpiCard icon="ti-id"            label="CSL Employees"          value={stats?.csl?.toLocaleString() || '0'}             color="var(--jio-teal)" />
-        <KpiCard icon="ti-network"       label="XDSS Employees"         value={stats?.xdss?.toLocaleString() || '0'}            color="var(--warning)" />
-        <KpiCard icon="ti-device-mobile" label="JDSS Employees"         value={stats?.jdss?.toLocaleString() || '0'}            color="var(--success)" />
-        <KpiCard icon="ti-shield"        label="Active Admin Sessions"   value={`${stats?.adminsActive || 0} / ${stats?.maxAdmins || 3}`} color="var(--danger)" sub="Max 3 simultaneous" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 16, marginBottom: 28 }}>
+        <KpiCard icon="ti-users"         label="Total Employees"      value={stats?.total?.toLocaleString() || '0'}                        color="var(--jio-blue)" />
+        <KpiCard icon="ti-id"            label="CSL Employees"        value={stats?.csl?.toLocaleString() || '0'}                          color="var(--jio-teal)" />
+        <KpiCard icon="ti-network"       label="XDSS Employees"       value={stats?.xdss?.toLocaleString() || '0'}                         color="var(--warning)" />
+        <KpiCard icon="ti-device-mobile" label="JDSS Employees"       value={stats?.jdss?.toLocaleString() || '0'}                         color="var(--success)" />
+        <KpiCard icon="ti-shield"        label="Active Admin Sessions" value={`${stats?.adminsActive || 0} / ${stats?.maxAdmins || 3}`}    color="var(--danger)" sub="Max 3 simultaneous" />
       </div>
 
-      {/* Installations + Campaign side-by-side */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }} className="dash-grid">
 
-        {/* Installations this week */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
             <div>
@@ -142,65 +131,34 @@ export default function AdminDashboard() {
             <span className="badge badge-blue">{weekLabel}</span>
           </div>
 
-          {/* Big number */}
           <div style={{
             background: 'linear-gradient(135deg, var(--jio-blue-dark), var(--jio-blue))',
-            borderRadius: 12,
-            padding: '24px 20px',
-            color: '#fff',
-            textAlign: 'center',
-            marginBottom: 16,
+            borderRadius: 12, padding: '24px 20px', color: '#fff',
+            textAlign: 'center', marginBottom: 16,
             boxShadow: '0 4px 16px rgba(15,60,201,0.25)',
-            position: 'relative',
-            overflow: 'hidden',
+            position: 'relative', overflow: 'hidden',
           }}>
             <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
-              Total Installations
-            </div>
-            <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-1px' }}>
-              {instStats?.total?.toLocaleString() || '0'}
-            </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-              across {instStats?.activeEmployees || '0'} active employees
-            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Total Installations</div>
+            <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-1px' }}>{instStats?.total?.toLocaleString() || '0'}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>across {instStats?.activeEmployees || '0'} active employees</div>
           </div>
 
-          {/* Breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
             {instBreakdown.map(c => (
-              <div key={c.label} style={{
-                background: c.bg,
-                borderRadius: 10,
-                padding: '14px 8px',
-                textAlign: 'center',
-                border: '1px solid var(--border)',
-              }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>
-                  {c.value?.toLocaleString() || '0'}
-                </div>
+              <div key={c.label} style={{ background: c.bg, borderRadius: 10, padding: '14px 8px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>{c.value?.toLocaleString() || '0'}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, fontWeight: 500 }}>{c.label}</div>
               </div>
             ))}
           </div>
 
           {instStats?.topPerformer && (
-            <div style={{
-              marginTop: 14,
-              padding: '12px 14px',
-              background: 'var(--gold-bg)',
-              border: '1px solid var(--gold-border)',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}>
+            <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--gold-bg)', border: '1px solid var(--gold-border)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 22 }}>🥇</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{instStats.topPerformer.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
-                  {instStats.topPerformer.category} · Top performer this week
-                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{instStats.topPerformer.category} · Top performer this week</div>
               </div>
               <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--jio-blue)', flexShrink: 0 }}>
                 {instStats.topPerformer.points}
@@ -210,45 +168,21 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Campaign settings + Quick links */}
         <div className="card">
           <h3 style={{ fontSize: 16, marginBottom: 18 }}>Campaign Settings</h3>
-
           <div style={{ marginBottom: 14 }}>
             <label>Campaign Name</label>
-            <div style={{
-              padding: '10px 14px',
-              background: 'var(--border-light)',
-              borderRadius: 8,
-              fontSize: 14,
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-            }}>
-              {settings.campaign_name}
-            </div>
+            <div style={{ padding: '10px 14px', background: 'var(--border-light)', borderRadius: 8, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>{settings.campaign_name}</div>
           </div>
           <div style={{ marginBottom: 20 }}>
             <label>Tagline</label>
-            <div style={{
-              padding: '10px 14px',
-              background: 'var(--border-light)',
-              borderRadius: 8,
-              fontSize: 14,
-              fontStyle: 'italic',
-              color: 'var(--text-secondary)',
-            }}>
-              {settings.tagline}
-            </div>
+            <div style={{ padding: '10px 14px', background: 'var(--border-light)', borderRadius: 8, fontSize: 14, fontStyle: 'italic', color: 'var(--text-secondary)' }}>{settings.tagline}</div>
           </div>
-
           <Link to="/admin/settings" className="btn btn-secondary btn-sm">
             <i className="ti ti-edit" /> Edit Campaign Settings
           </Link>
-
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>
-              Quick Links
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>Quick Links</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Link to="/admin/employees" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start' }}>
                 <i className="ti ti-user-plus" /> Add / Manage Employees
@@ -267,11 +201,7 @@ export default function AdminDashboard() {
       {/* How to Use */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10,
-            background: 'var(--jio-blue-light)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--jio-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <i className="ti ti-help" style={{ fontSize: 22, color: 'var(--jio-blue)' }} />
           </div>
           <div>
@@ -279,35 +209,15 @@ export default function AdminDashboard() {
             <p style={{ fontSize: 12, marginTop: 2 }}>Step-by-step guide for admins</p>
           </div>
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
           {HOW_TO_USE.map(item => (
-            <div key={item.step} style={{
-              padding: '16px',
-              borderRadius: 12,
-              border: '1px solid var(--border)',
-              background: 'var(--bg)',
-              display: 'flex',
-              gap: 12,
-              alignItems: 'flex-start',
-              transition: 'border-color 0.15s',
-            }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: item.color + '18',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
+            <div key={item.step} style={{ padding: '16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: item.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <i className={`ti ${item.icon}`} style={{ fontSize: 20, color: item.color }} />
               </div>
               <div>
                 <div style={{ marginBottom: 5 }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, color: '#fff',
-                    background: item.color,
-                    borderRadius: 20, padding: '1px 8px',
-                  }}>
-                    STEP {item.step}
-                  </span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: item.color, borderRadius: 20, padding: '1px 8px' }}>STEP {item.step}</span>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{item.title}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{item.desc}</div>
@@ -318,9 +228,7 @@ export default function AdminDashboard() {
       </div>
 
       <style>{`
-        @media (max-width: 900px) {
-          .dash-grid { grid-template-columns: 1fr !important; }
-        }
+        @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr !important; } }
       `}</style>
     </div>
   );
