@@ -4,90 +4,127 @@ import { useToast } from '../../hooks/useToast';
 
 export default function ExcelUpload() {
   const toast = useToast();
-  const fileRef = useRef();
 
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [imported, setImported] = useState(null);
+  // Employees section
+  const empFileRef = useRef();
+  const [empFile, setEmpFile] = useState(null);
+  const [empPreview, setEmpPreview] = useState(null);
+  const [empImporting, setEmpImporting] = useState(false);
+  const [empResult, setEmpResult] = useState(null);
+
+  // Installations section
+  const instFileRef = useRef();
+  const [instFile, setInstFile] = useState(null);
+  const [instPreview, setInstPreview] = useState(null);
+  const [instImporting, setInstImporting] = useState(false);
+  const [instResult, setInstResult] = useState(null);
+
   const [clearing, setClearing] = useState('');
-  const [confirmClear, setConfirmClear] = useState(''); // 'inst' | 'all' | ''
 
-  const handleFile = async (f) => {
+  // --- Employee handlers ---
+  const handleEmpFile = async (f) => {
     if (!f) return;
-    setFile(f);
-    setPreview(null);
-    setImported(null);
-
+    setEmpFile(f);
+    setEmpPreview(null);
+    setEmpResult(null);
     const formData = new FormData();
     formData.append('file', f);
     try {
-      const res = await api.post('/excel/preview', formData);
-      setPreview(res.data);
+      const res = await api.post('/excel/preview-employees', formData);
+      setEmpPreview(res.data);
     } catch (err) {
       toast(err.response?.data?.error || 'Could not read file', 'error');
-      setFile(null);
+      setEmpFile(null);
     }
   };
 
-  const handleImport = async () => {
-    if (!file) return;
-    setImporting(true);
+  const handleEmpImport = async () => {
+    if (!empFile) return;
+    setEmpImporting(true);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', empFile);
     try {
-      const res = await api.post('/excel/import', formData);
-      setImported(res.data);
-      setPreview(null);
-      setFile(null);
-      if (fileRef.current) fileRef.current.value = '';
-      toast(`✅ Imported ${res.data.empAdded} new + ${res.data.empUpdated} updated employees`, 'success');
+      const res = await api.post('/excel/import-employees', formData);
+      setEmpResult(res.data);
+      setEmpPreview(null);
+      setEmpFile(null);
+      if (empFileRef.current) empFileRef.current.value = '';
+      toast(`✅ ${res.data.empAdded} employees added, ${res.data.empUpdated} updated`, 'success');
     } catch (err) {
       toast(err.response?.data?.error || 'Import failed', 'error');
     } finally {
-      setImporting(false);
+      setEmpImporting(false);
     }
+  };
+
+  // --- Installation handlers ---
+  const handleInstFile = async (f) => {
+    if (!f) return;
+    setInstFile(f);
+    setInstPreview(null);
+    setInstResult(null);
+    const formData = new FormData();
+    formData.append('file', f);
+    try {
+      const res = await api.post('/excel/preview-installations', formData);
+      setInstPreview(res.data);
+    } catch (err) {
+      toast(err.response?.data?.error || 'Could not read file', 'error');
+      setInstFile(null);
+    }
+  };
+
+  const handleInstImport = async () => {
+    if (!instFile) return;
+    setInstImporting(true);
+    const formData = new FormData();
+    formData.append('file', instFile);
+    try {
+      const res = await api.post('/excel/import-installations', formData);
+      setInstResult(res.data);
+      setInstPreview(null);
+      setInstFile(null);
+      if (instFileRef.current) instFileRef.current.value = '';
+      toast(`✅ ${res.data.instUpdated} installation records updated`, 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Import failed', 'error');
+    } finally {
+      setInstImporting(false);
+    }
+  };
+
+  const handleDownload = async (type) => {
+    try {
+      const endpoint = type === 'employees' ? '/excel/template-employees' : '/excel/template-installations';
+      const filename = type === 'employees' ? 'employees-template.xlsx' : 'installations-template.xlsx';
+      const res = await api.get(endpoint, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast('Could not download template', 'error'); }
   };
 
   const handleClearInstallations = async () => {
+    if (!window.confirm('Clear all installation data? Employees will be kept.')) return;
     setClearing('inst');
-    setConfirmClear('');
     try {
       await api.post('/excel/clear-installations');
       toast('Installation data cleared', 'success');
-      setImported(null);
-    } catch {
-      toast('Failed to clear', 'error');
-    } finally { setClearing(''); }
+      setInstResult(null);
+    } catch { toast('Failed to clear', 'error'); }
+    finally { setClearing(''); }
   };
 
   const handleClearAll = async () => {
+    if (!window.confirm('Delete ALL employees and installations? This cannot be undone.')) return;
     setClearing('all');
-    setConfirmClear('');
     try {
       await api.post('/excel/clear-all');
       toast('All data cleared', 'success');
-      setPreview(null);
-      setImported(null);
-      setFile(null);
-      if (fileRef.current) fileRef.current.value = '';
-    } catch {
-      toast('Failed to clear', 'error');
-    } finally { setClearing(''); }
-  };
-
-  const handleDownloadTemplate = async () => {
-    try {
-      const res = await api.get('/excel/template', { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'jio-portal-template.xlsx';
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast('Could not download template', 'error');
-    }
+      setEmpResult(null); setInstResult(null);
+    } catch { toast('Failed to clear', 'error'); }
+    finally { setClearing(''); }
   };
 
   return (
@@ -95,208 +132,210 @@ export default function ExcelUpload() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>Excel Data Management</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 }}>
-          Upload Excel to update employees and installation data
+          Upload employees once, then upload daily installations separately
         </p>
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: confirmClear ? 0 : 24, flexWrap: 'wrap' }}>
-        <button className="btn btn-secondary" onClick={handleDownloadTemplate}>
-          <i className="ti ti-download" /> Download Template
+      {/* Clear buttons */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
+        <button className="btn" onClick={handleClearInstallations} disabled={clearing === 'inst'}
+          style={{ background: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E' }}>
+          <i className="ti ti-trash" /> {clearing === 'inst' ? 'Clearing…' : 'Clear Installations'}
         </button>
-        <button className="btn btn-warn" onClick={() => setConfirmClear(confirmClear === 'inst' ? '' : 'inst')} disabled={!!clearing}>
-          <i className="ti ti-trash" /> Clear Installations
-        </button>
-        <button className="btn btn-secondary" onClick={() => setConfirmClear(confirmClear === 'all' ? '' : 'all')} disabled={!!clearing}
-          style={{ color: '#DC2626', borderColor: '#FECACA' }}>
-          <i className="ti ti-trash-x" /> Clear All Data
+        <button className="btn" onClick={handleClearAll} disabled={clearing === 'all'}
+          style={{ background: '#FEE2E2', border: '1px solid #FECACA', color: '#DC2626' }}>
+          <i className="ti ti-trash-x" /> {clearing === 'all' ? 'Clearing…' : 'Clear All Data'}
         </button>
       </div>
 
-      {/* Inline confirmation */}
-      {confirmClear && (
-        <div style={{
-          marginBottom: 24, padding: '14px 16px', borderRadius: 10,
-          background: confirmClear === 'all' ? '#FEE2E2' : '#FEF3C7',
-          border: `1px solid ${confirmClear === 'all' ? '#FECACA' : '#FCD34D'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: confirmClear === 'all' ? '#991B1B' : '#92400E' }}>
-            {confirmClear === 'all'
-              ? 'This will permanently delete ALL employees and installation data.'
-              : 'This will clear all installation data. Employee accounts will be kept.'}
-          </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={() => setConfirmClear('')}>Cancel</button>
-            <button className={`btn btn-sm ${confirmClear === 'all' ? 'btn-danger' : 'btn-warn'}`}
-              disabled={!!clearing}
-              onClick={confirmClear === 'all' ? handleClearAll : handleClearInstallations}>
-              {clearing ? 'Clearing…' : 'Yes, clear'}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+
+        {/* ===== SECTION 1: EMPLOYEES ===== */}
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--jio-blue)' }}>
+              <i className="ti ti-users" style={{ marginRight: 8 }} />Upload Employees
+            </h2>
+            <button className="btn btn-secondary btn-sm" onClick={() => handleDownload('employees')}>
+              <i className="ti ti-download" /> Template
             </button>
           </div>
-        </div>
-      )}
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
+            Upload once. Employees are saved permanently until you clear data.
+          </p>
 
-      {/* Upload zone */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Upload Excel File</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-          File must have two sheets: <strong>Employees</strong> and <strong>Installations</strong>
-        </p>
-
-        <div
-          onClick={() => fileRef.current?.click()}
-          onDragOver={e => e.preventDefault()}
-          onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
-          style={{
-            border: `2px dashed ${file ? 'var(--jio-teal)' : 'var(--border)'}`,
-            borderRadius: 10, padding: '32px 20px', textAlign: 'center',
-            cursor: 'pointer', background: file ? 'var(--jio-teal-light)' : 'var(--bg)',
-            transition: 'all 0.2s',
-          }}
-        >
-          <i className="ti ti-file-spreadsheet" style={{ fontSize: 36, color: 'var(--jio-teal)', display: 'block', marginBottom: 8 }} />
-          {file ? (
-            <>
-              <div style={{ fontWeight: 600, color: 'var(--jio-teal)' }}>{file.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                {(file.size / 1024).toFixed(1)} KB — Click to change
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontWeight: 500 }}>Drop your Excel file here or click to browse</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>.xlsx files only</div>
-            </>
-          )}
-        </div>
-        <input ref={fileRef} type="file" accept=".xlsx" style={{ display: 'none' }}
-          onChange={e => handleFile(e.target.files[0])} />
-      </div>
-
-      {/* Preview */}
-      {preview && (
-        <div className="card" style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
-            <i className="ti ti-eye" style={{ marginRight: 6 }} /> Preview
-          </h2>
-
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-            {[
-              { label: 'Employees found', value: preview.employees?.length || 0, color: 'var(--jio-blue)' },
-              { label: 'Installations found', value: preview.installations?.length || 0, color: 'var(--jio-teal)' },
-              { label: 'Warnings', value: preview.errors?.length || 0, color: preview.errors?.length ? '#D97706' : 'var(--text-muted)' },
-            ].map(s => (
-              <div key={s.label} className="card" style={{ textAlign: 'center', padding: '16px 12px' }}>
-                <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{s.label}</div>
-              </div>
-            ))}
+          {/* Drop zone */}
+          <div onClick={() => empFileRef.current?.click()}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => { e.preventDefault(); handleEmpFile(e.dataTransfer.files[0]); }}
+            style={{
+              border: `2px dashed ${empFile ? 'var(--jio-teal)' : 'var(--border)'}`,
+              borderRadius: 10, padding: '20px', textAlign: 'center', cursor: 'pointer',
+              background: empFile ? 'var(--jio-teal-light)' : 'var(--bg)', marginBottom: 12
+            }}>
+            <i className="ti ti-file-spreadsheet" style={{ fontSize: 28, color: 'var(--jio-teal)', display: 'block', marginBottom: 6 }} />
+            {empFile ? (
+              <>
+                <div style={{ fontWeight: 600, color: 'var(--jio-teal)', fontSize: 13 }}>{empFile.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{(empFile.size/1024).toFixed(1)} KB — Click to change</div>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drop employees Excel or click to browse</div>
+            )}
           </div>
+          <input ref={empFileRef} type="file" accept=".xlsx" style={{ display: 'none' }}
+            onChange={e => handleEmpFile(e.target.files[0])} />
 
-          {/* Warnings */}
-          {preview.errors?.length > 0 && (
-            <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13 }}>
-              <strong>⚠️ Warnings ({preview.errors.length})</strong>
-              <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
-                {preview.errors.slice(0, 5).map((e, i) => <li key={i}>{e}</li>)}
-                {preview.errors.length > 5 && <li>…and {preview.errors.length - 5} more</li>}
-              </ul>
-            </div>
-          )}
-
-          {/* First 3 employees */}
-          {preview.employees?.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 8 }}>
-                First 3 Employees
+          {/* Preview */}
+          {empPreview && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <div style={{ background: '#EEF2FF', borderRadius: 8, padding: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--jio-blue)' }}>{empPreview.total}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Employees found</div>
+                </div>
+                <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--success)' }}>Ready</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>to import</div>
+                </div>
               </div>
-              {preview.employees.slice(0, 3).map(emp => (
-                <div key={emp.employee_id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', background: 'var(--bg)', borderRadius: 8, marginBottom: 6,
-                  border: '1px solid var(--border)'
-                }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-muted)' }}>{emp.employee_id}</span>
-                    <span style={{ fontWeight: 500 }}>{emp.name}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <span className={`badge ${emp.category === 'CSL' ? 'badge-blue' : 'badge-teal'}`}>{emp.category}</span>
-                    <span className="badge badge-gray" style={{ color: emp.active ? '#059669' : '#DC2626' }}>
-                      {emp.active ? '● Active' : '● Inactive'}
-                    </span>
-                  </div>
+              {empPreview.employees?.slice(0,2).map(emp => (
+                <div key={emp.employee_id} style={{ fontSize: 12, padding: '6px 10px', background: 'var(--bg)', borderRadius: 6, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+                  <span><strong>{emp.employee_id}</strong> — {emp.name}</span>
+                  <span className={`badge ${emp.category === 'CSL' ? 'badge-blue' : 'badge-teal'}`}>{emp.category}</span>
                 </div>
               ))}
+              <button className="btn btn-primary" onClick={handleEmpImport} disabled={empImporting}
+                style={{ width: '100%', marginTop: 8 }}>
+                {empImporting
+                  ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Importing {empPreview.total} employees…</>
+                  : <><i className="ti ti-upload" /> Import {empPreview.total} Employees</>}
+              </button>
             </div>
           )}
 
-          {/* Import button */}
-          <button
-            className="btn btn-primary"
-            onClick={handleImport}
-            disabled={importing || !preview.employees?.length}
-            style={{ fontSize: 15, padding: '12px 28px' }}
-          >
-            {importing
-              ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Importing…</>
-              : <><i className="ti ti-upload" /> Import {preview.employees?.length} Employees + {preview.installations?.length} Installations</>
-            }
-          </button>
-        </div>
-      )}
-
-      {/* Import result */}
-      {imported && (
-        <div className="card" style={{ background: '#D1FAE5', border: '1px solid #6EE7B7', marginBottom: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, color: '#065F46' }}>
-            ✅ Import Successful
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-            {[
-              { label: 'New employees added', value: imported.empAdded },
-              { label: 'Employees updated', value: imported.empUpdated },
-              { label: 'Installation records', value: imported.instUpdated },
-            ].map(s => (
-              <div key={s.label} style={{ background: '#fff', borderRadius: 8, padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#065F46' }}>{s.value}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{s.label}</div>
+          {/* Result */}
+          {empResult && (
+            <div style={{ background: '#D1FAE5', border: '1px solid #6EE7B7', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontWeight: 600, color: '#065F46', marginBottom: 6 }}>✅ Import Successful</div>
+              <div style={{ fontSize: 13 }}>
+                <span style={{ color: '#065F46' }}>{empResult.empAdded} new</span> · <span>{empResult.empUpdated} updated</span>
               </div>
-            ))}
+              {empResult.newPasswords?.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#065F46' }}>
+                    🔑 Passwords — save these! Shown only once.
+                  </div>
+                  <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>{['ID','Name','Password'].map(h => <th key={h} style={{ padding: '4px 8px', background: 'rgba(6,95,70,0.1)', border: '1px solid #6EE7B7', textAlign: 'left' }}>{h}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {empResult.newPasswords.map(p => (
+                          <tr key={p.employee_id}>
+                            <td style={{ padding: '4px 8px', border: '1px solid #6EE7B7', background: '#fff' }}>{p.employee_id}</td>
+                            <td style={{ padding: '4px 8px', border: '1px solid #6EE7B7', background: '#fff' }}>{p.name}</td>
+                            <td style={{ padding: '4px 8px', border: '1px solid #6EE7B7', background: '#fff', fontFamily: 'monospace', fontWeight: 600 }}>{p.password}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== SECTION 2: INSTALLATIONS ===== */}
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--jio-teal)' }}>
+              <i className="ti ti-home-check" style={{ marginRight: 8 }} />Upload Installations
+            </h2>
+            <button className="btn btn-secondary btn-sm" onClick={() => handleDownload('installations')}>
+              <i className="ti ti-download" /> Template
+            </button>
           </div>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
+            Upload daily. Each day's count adds to the week's total automatically.
+          </p>
 
-          {/* New passwords table */}
-          {imported.newPasswords?.length > 0 && (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#065F46' }}>
-                🔑 Generated Passwords — Save these now! Shown only once.
+          {/* Drop zone */}
+          <div onClick={() => instFileRef.current?.click()}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => { e.preventDefault(); handleInstFile(e.dataTransfer.files[0]); }}
+            style={{
+              border: `2px dashed ${instFile ? '#0099C2' : 'var(--border)'}`,
+              borderRadius: 10, padding: '20px', textAlign: 'center', cursor: 'pointer',
+              background: instFile ? 'var(--jio-teal-light)' : 'var(--bg)', marginBottom: 12
+            }}>
+            <i className="ti ti-calendar-stats" style={{ fontSize: 28, color: 'var(--jio-teal)', display: 'block', marginBottom: 6 }} />
+            {instFile ? (
+              <>
+                <div style={{ fontWeight: 600, color: 'var(--jio-teal)', fontSize: 13 }}>{instFile.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{(instFile.size/1024).toFixed(1)} KB — Click to change</div>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drop installations Excel or click to browse</div>
+            )}
+          </div>
+          <input ref={instFileRef} type="file" accept=".xlsx" style={{ display: 'none' }}
+            onChange={e => handleInstFile(e.target.files[0])} />
+
+          {/* Preview */}
+          {instPreview && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <div style={{ background: 'var(--jio-teal-light)', borderRadius: 8, padding: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--jio-teal)' }}>{instPreview.total}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Records found</div>
+                </div>
+                <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--success)' }}>Ready</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>to upload</div>
+                </div>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      {['Employee ID', 'Name', 'Password'].map(h => (
-                        <th key={h} style={{ padding: '8px 12px', background: 'rgba(6,95,70,0.1)', border: '1px solid #6EE7B7', textAlign: 'left' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {imported.newPasswords.map(p => (
-                      <tr key={p.employee_id}>
-                        <td style={{ padding: '7px 12px', border: '1px solid #6EE7B7', background: '#fff' }}>{p.employee_id}</td>
-                        <td style={{ padding: '7px 12px', border: '1px solid #6EE7B7', background: '#fff' }}>{p.name}</td>
-                        <td style={{ padding: '7px 12px', border: '1px solid #6EE7B7', background: '#fff', fontFamily: 'monospace', fontWeight: 600 }}>{p.password}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {instPreview.installations?.slice(0,2).map((inst, i) => (
+                <div key={i} style={{ fontSize: 12, padding: '6px 10px', background: 'var(--bg)', borderRadius: 6, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+                  <span><strong>{inst.employee_id}</strong></span>
+                  <span style={{ fontWeight: 600, color: 'var(--jio-teal)' }}>{inst.installations} installs</span>
+                </div>
+              ))}
+              <button className="btn" onClick={handleInstImport} disabled={instImporting}
+                style={{ width: '100%', marginTop: 8, background: 'var(--jio-teal)', color: '#fff' }}>
+                {instImporting
+                  ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading…</>
+                  : <><i className="ti ti-upload" /> Upload {instPreview.total} Records</>}
+              </button>
+            </div>
+          )}
+
+          {/* Result */}
+          {instResult && (
+            <div style={{ background: 'var(--jio-teal-light)', border: '1px solid var(--jio-teal)', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontWeight: 600, color: 'var(--jio-teal)', marginBottom: 4 }}>✅ Installations Updated</div>
+              <div style={{ fontSize: 13 }}>
+                <span style={{ fontWeight: 600 }}>{instResult.instUpdated}</span> records updated
+                {instResult.skipped > 0 && <span style={{ color: 'var(--text-muted)' }}> · {instResult.skipped} skipped (unknown IDs)</span>}
               </div>
             </div>
           )}
+
+          {/* Daily instructions */}
+          <div style={{ marginTop: 16, padding: '12px 14px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, fontSize: 12, color: '#92400E' }}>
+            <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
+            <strong>Daily workflow:</strong> Download template → fill Employee ID, Name, Installations, today's date → Upload. Rankings update instantly.
+          </div>
         </div>
-      )}
+      </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }
